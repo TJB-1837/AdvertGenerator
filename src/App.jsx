@@ -1,21 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-
-const STORAGE_KEY = 'advert-template.templates.v1'
-
-const SAMPLE_TEMPLATES = [
-  {
-    id: 'sample-1',
-    name: 'Vintage jacket',
-    content:
-      '[Variable 1]\n\nHere is the set [Variable 2].\n\nCondition is [Variable 3].\n\nFast and safe shipping.\n\nFor more details, message me.',
-  },
-  {
-    id: 'sample-2',
-    name: 'Sneakers listing',
-    content:
-      'Brand: [Brand]\nSize: [Size]\nColor: [Color]\n\nGently used and ready to ship.\nMessage me if interested.',
-  },
-]
+import { supabase } from './lib/supabase'
 
 function createId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -29,45 +13,8 @@ function normalizeTemplate(template) {
   return {
     ...template,
     name: template.name.trim(),
+    title: (template.title ?? '').trim(),
     content: template.content.trim(),
-  }
-}
-
-function loadTemplates() {
-  if (typeof window === 'undefined') {
-    return SAMPLE_TEMPLATES.map((template) => ({
-      ...template,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }))
-  }
-
-  const raw = window.localStorage.getItem(STORAGE_KEY)
-
-  if (!raw) {
-    const now = new Date().toISOString()
-    return SAMPLE_TEMPLATES.map((template) => ({
-      ...template,
-      createdAt: now,
-      updatedAt: now,
-    }))
-  }
-
-  try {
-    const parsed = JSON.parse(raw)
-
-    if (!Array.isArray(parsed)) {
-      throw new Error('Stored templates must be an array.')
-    }
-
-    return parsed
-  } catch {
-    const now = new Date().toISOString()
-    return SAMPLE_TEMPLATES.map((template) => ({
-      ...template,
-      createdAt: now,
-      updatedAt: now,
-    }))
   }
 }
 
@@ -102,8 +49,165 @@ function formatDate(dateString) {
   }).format(new Date(dateString))
 }
 
+function AuthPanel({ onAuthenticated, onBack }) {
+  const [mode, setMode] = useState('sign-in')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+    setIsSubmitting(true)
+
+    const result = mode === 'sign-in'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password })
+
+    setIsSubmitting(false)
+
+    if (result.error) {
+      setError(result.error.message)
+      return
+    }
+
+    if (mode === 'sign-up') {
+      setMessage('Account created. Check your email if confirmation is enabled.')
+    } else {
+      onAuthenticated(result.data.session)
+    }
+  }
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-panel">
+        <p className="eyebrow">AdvertTemplate</p>
+        <h1>{mode === 'sign-in' ? 'Welcome back.' : 'Create your workspace.'}</h1>
+        <p className="topbar__subtitle">Your templates are securely saved to your Supabase account.</p>
+        <form className="form" onSubmit={handleSubmit}>
+          <label>
+            <span>Email</span>
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          </label>
+          <label>
+            <span>Password</span>
+            <input type="password" minLength={6} value={password} onChange={(event) => setPassword(event.target.value)} required />
+          </label>
+          {error ? <p className="error-message">{error}</p> : null}
+          {message ? <p className="status-message">{message}</p> : null}
+          <button type="submit" className="button button--primary button--large" disabled={isSubmitting}>
+            {isSubmitting ? 'Please wait...' : mode === 'sign-in' ? 'Sign in' : 'Create account'}
+          </button>
+        </form>
+        <button type="button" className="button button--ghost" onClick={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}>
+          {mode === 'sign-in' ? 'Create an account' : 'I already have an account'}
+        </button>
+        {onBack ? (
+          <button type="button" className="button button--text" onClick={onBack}>
+            Back to overview
+          </button>
+        ) : null}
+      </section>
+    </main>
+  )
+}
+
+function LandingPage() {
+  const [showAuth, setShowAuth] = useState(false)
+
+  if (showAuth) {
+    return <AuthPanel onAuthenticated={() => {}} onBack={() => setShowAuth(false)} />
+  }
+
+  return (
+    <main className="landing-page">
+      <nav className="landing-nav">
+        <a className="landing-brand" href="#top" aria-label="AdvertTemplate home">
+          <span className="landing-brand__mark">A</span>
+          <span>AdvertTemplate</span>
+        </a>
+        <button type="button" className="button button--ghost" onClick={() => setShowAuth(true)}>
+          Sign in
+        </button>
+      </nav>
+
+      <section className="landing-hero" id="top">
+        <div className="landing-hero__copy">
+          <p className="eyebrow">Your listings, on autopilot</p>
+          <h1>Write once.<br /><em>Sell faster.</em></h1>
+          <p className="landing-hero__lede">
+            Turn your best listing ideas into reusable templates. Fill in the details, copy a polished advert, and get back to selling.
+          </p>
+          <div className="landing-hero__actions">
+            <button type="button" className="button button--primary button--large" onClick={() => setShowAuth(true)}>
+              Start for free <span aria-hidden="true">→</span>
+            </button>
+            <span className="landing-note">No credit card. No clutter.</span>
+          </div>
+        </div>
+
+        <div className="product-preview" aria-label="AdvertTemplate product preview">
+          <div className="product-preview__topbar">
+            <span className="product-preview__logo">AdvertTemplate</span>
+            <span className="product-preview__avatar">JD</span>
+          </div>
+          <div className="product-preview__body">
+            <div className="product-preview__heading">
+              <div>
+                <span className="product-preview__overline">Your workspace</span>
+                <strong>Ready to list</strong>
+              </div>
+              <span className="product-preview__count">3 templates</span>
+            </div>
+            <div className="product-preview__editor">
+              <div className="product-preview__fields">
+                <span className="preview-label">TITLE</span>
+                <div className="preview-input">Vintage denim jacket · size M</div>
+                <span className="preview-label">DESCRIPTION</span>
+                <div className="preview-lines"><i /><i /><i className="short" /></div>
+                <div className="preview-chips"><span>[Brand]</span><span>[Size]</span><span>[Condition]</span></div>
+              </div>
+              <div className="product-preview__result">
+                <span className="preview-label">GENERATED ADVERT</span>
+                <strong>Vintage denim jacket<br />· size M</strong>
+                <p>Classic denim jacket in excellent condition. Ready for its next wardrobe...</p>
+                <span className="preview-copy">Copy listing <b>↗</b></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-proof" aria-label="Product benefits">
+        <p>Made for the listings you write again and again</p>
+        <div><span>VINTED</span><span>eBay</span><span>Depop</span><span>MARKETPLACE</span></div>
+      </section>
+
+      <section className="landing-benefits">
+        <div className="landing-section-heading">
+          <p className="eyebrow">Less typing. More momentum.</p>
+          <h2>Your unfair advantage is a good template.</h2>
+        </div>
+        <div className="benefit-grid">
+          <article><span className="benefit-number">01</span><h3>Keep your best copy</h3><p>Save the wording that works, so every new listing starts from a strong foundation.</p></article>
+          <article><span className="benefit-number">02</span><h3>Fill the blanks</h3><p>Use simple variables for brand, size, condition, and every detail that changes.</p></article>
+          <article><span className="benefit-number">03</span><h3>Post in seconds</h3><p>Generate a clean title and description, then copy the finished advert wherever you sell.</p></article>
+        </div>
+      </section>
+
+      <section className="landing-cta">
+        <div><p className="eyebrow">Start with your next listing</p><h2>Build your little library of great adverts.</h2></div>
+        <button type="button" className="button button--primary button--large" onClick={() => setShowAuth(true)}>Create your free workspace <span aria-hidden="true">→</span></button>
+      </section>
+    </main>
+  )
+}
+
 function TemplateCard({ template, onEdit, onGenerate, onDelete }) {
-  const variables = extractVariables(template.content)
+  const variables = extractVariables(`${template.title ?? ''}\n${template.content}`)
 
   return (
     <article className="template-card">
@@ -115,10 +219,10 @@ function TemplateCard({ template, onEdit, onGenerate, onDelete }) {
         <span className="template-card__badge">Template</span>
       </div>
 
-      <pre className="template-card__preview">{template.content}</pre>
+      <pre className="template-card__preview">{template.title ? `${template.title}\n\n` : ''}{template.content}</pre>
 
       <div className="template-card__footer">
-        <small>Updated {formatDate(template.updatedAt || template.createdAt)}</small>
+        <small>Updated {formatDate(template.updated_at || template.created_at)}</small>
         <div className="template-card__actions">
           <button type="button" className="button button--ghost" onClick={() => onEdit(template)}>
             Edit
@@ -162,15 +266,17 @@ function Modal({ title, subtitle, onClose, children, wide = false }) {
 
 function TemplateForm({ initialTemplate, onSave, onCancel }) {
   const [name, setName] = useState(initialTemplate?.name ?? '')
+  const [title, setTitle] = useState(initialTemplate?.title ?? '')
   const [content, setContent] = useState(initialTemplate?.content ?? '')
 
-  const variables = useMemo(() => extractVariables(content), [content])
+  const variables = useMemo(() => extractVariables(`${title}\n${content}`), [title, content])
 
   const handleSubmit = (event) => {
     event.preventDefault()
     onSave({
       ...initialTemplate,
       name,
+      title,
       content,
     })
   }
@@ -183,6 +289,16 @@ function TemplateForm({ initialTemplate, onSave, onCancel }) {
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Example: Vintage jacket"
+          required
+        />
+      </label>
+
+      <label>
+        <span>Listing title</span>
+        <input
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder="Example: Nike sneakers, size 42"
           required
         />
       </label>
@@ -226,7 +342,10 @@ function TemplateForm({ initialTemplate, onSave, onCancel }) {
 }
 
 function GeneratorPanel({ template, onClose }) {
-  const variables = useMemo(() => extractVariables(template.content), [template.content])
+  const variables = useMemo(
+    () => extractVariables(`${template.title ?? ''}\n${template.content}`),
+    [template.title, template.content],
+  )
   const [values, setValues] = useState(() => Object.fromEntries(variables.map((variable) => [variable, ''])))
   const [copyStatus, setCopyStatus] = useState('')
 
@@ -235,10 +354,25 @@ function GeneratorPanel({ template, onClose }) {
     setCopyStatus('')
   }, [template.id, variables])
 
-  const generatedText = useMemo(
+  const generatedTitle = useMemo(
+    () => generateAdvertText(template.title ?? '', values),
+    [template.title, values],
+  )
+  const generatedDescription = useMemo(
     () => generateAdvertText(template.content, values),
     [template.content, values],
   )
+  const generatedText = `${generatedTitle}${generatedTitle && generatedDescription ? '\n\n' : ''}${generatedDescription}`
+
+  const handleClose = () => {
+    const hasEnteredValues = Object.values(values).some((value) => value.trim())
+
+    if (hasEnteredValues && !window.confirm('Are you sure you want to quit this window? Your entered values will be lost.')) {
+      return
+    }
+
+    onClose()
+  }
 
   const handleCopy = async () => {
     try {
@@ -253,7 +387,7 @@ function GeneratorPanel({ template, onClose }) {
     <Modal
       title={`Generate: ${template.name}`}
       subtitle="Fill in the variables and copy the finished advert."
-      onClose={onClose}
+      onClose={handleClose}
       wide
     >
       <div className="generator-layout">
@@ -285,12 +419,16 @@ function GeneratorPanel({ template, onClose }) {
         <section className="generator-layout__preview">
           <div className="preview-card">
             <div className="preview-card__header">
-              <strong>Generated text</strong>
+              <strong>Generated advert</strong>
               <button type="button" className="button button--primary" onClick={handleCopy}>
                 Copy text
               </button>
             </div>
-            <textarea readOnly value={generatedText} rows={18} />
+            <div className="generated-title">
+              <span>Title</span>
+              <input readOnly value={generatedTitle} aria-label="Generated listing title" />
+            </div>
+            <textarea readOnly value={generatedDescription} rows={16} aria-label="Generated listing description" />
             {copyStatus ? <p className="status-message">{copyStatus}</p> : null}
           </div>
         </section>
@@ -300,47 +438,104 @@ function GeneratorPanel({ template, onClose }) {
 }
 
 function App() {
-  const [templates, setTemplates] = useState(loadTemplates)
+  const [session, setSession] = useState(null)
+  const [templates, setTemplates] = useState([])
   const [editorTemplate, setEditorTemplate] = useState(null)
   const [generatorTemplate, setGeneratorTemplate] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(templates))
-  }, [templates])
+    let mounted = true
 
-  const handleSaveTemplate = (draft) => {
-    const now = new Date().toISOString()
-    const normalized = normalizeTemplate(draft)
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) {
+        setSession(data.session)
+        setIsLoading(false)
+      }
+    })
 
-    if (!normalized.name || !normalized.content) {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+      setIsLoading(false)
+    })
+
+    return () => {
+      mounted = false
+      listener.subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!session?.user) {
+      setTemplates([])
       return
     }
 
-    setTemplates((current) => {
-      if (normalized.id) {
-        return current.map((template) =>
-          template.id === normalized.id
-            ? { ...template, ...normalized, updatedAt: now }
-            : template,
-        )
+    const loadUserTemplates = async () => {
+      setError('')
+      const { data, error: loadError } = await supabase
+        .from('templates')
+        .select('*')
+        .order('updated_at', { ascending: false })
+
+      if (loadError) {
+        setError(loadError.message)
+        return
       }
 
-      return [
-        {
-          id: createId(),
-          ...normalized,
-          createdAt: now,
-          updatedAt: now,
-        },
-        ...current,
-      ]
-    })
+      setTemplates(data ?? [])
+    }
+
+    loadUserTemplates()
+  }, [session])
+
+  const handleSaveTemplate = async (draft) => {
+    const normalized = normalizeTemplate(draft)
+
+    if (!session?.user || !normalized.name || !normalized.title || !normalized.content) {
+      return
+    }
+
+    const payload = {
+      name: normalized.name,
+      title: normalized.title,
+      content: normalized.content,
+    }
+    const query = normalized.id
+      ? supabase.from('templates').update(payload).eq('id', normalized.id).select().single()
+      : supabase.from('templates').insert({ ...payload, user_id: session.user.id }).select().single()
+    const { data, error: saveError } = await query
+
+    if (saveError) {
+      setError(saveError.message)
+      return
+    }
+
+    setTemplates((current) => normalized.id
+      ? current.map((template) => (template.id === data.id ? data : template))
+      : [data, ...current])
 
     setEditorTemplate(null)
   }
 
-  const handleDeleteTemplate = (id) => {
+  const handleDeleteTemplate = async (id) => {
+    const { error: deleteError } = await supabase.from('templates').delete().eq('id', id)
+
+    if (deleteError) {
+      setError(deleteError.message)
+      return
+    }
+
     setTemplates((current) => current.filter((template) => template.id !== id))
+  }
+
+  if (isLoading) {
+    return <main className="auth-shell"><p>Loading your workspace...</p></main>
+  }
+
+  if (!session) {
+    return <LandingPage />
   }
 
   const templateCount = templates.length
@@ -355,19 +550,25 @@ function App() {
             Save reusable templates, fill variables, and copy ready-to-post listings in seconds.
           </p>
         </div>
-        <button
-          type="button"
-          className="button button--primary button--large"
-          onClick={() => {
-            setGeneratorTemplate(null)
-            setEditorTemplate({ name: '', content: '' })
-          }}
-        >
-          + Create template
-        </button>
+        <div className="topbar__actions">
+          <button type="button" className="button button--ghost" onClick={() => supabase.auth.signOut()}>
+            Sign out
+          </button>
+          <button
+            type="button"
+            className="button button--primary button--large"
+            onClick={() => {
+              setGeneratorTemplate(null)
+              setEditorTemplate({ name: '', title: '', content: '' })
+            }}
+          >
+            + Create template
+          </button>
+        </div>
       </header>
 
       <main className="content">
+        {error ? <p className="error-message">{error}</p> : null}
         <section className="stats-row">
           <div className="stat-card">
             <span>Templates</span>
@@ -410,7 +611,7 @@ function App() {
               className="button button--primary"
               onClick={() => {
                 setGeneratorTemplate(null)
-                setEditorTemplate({ name: '', content: '' })
+                setEditorTemplate({ name: '', title: '', content: '' })
               }}
             >
               Create your first template
