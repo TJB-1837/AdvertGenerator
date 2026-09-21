@@ -115,6 +115,109 @@ function AuthPanel({ onAuthenticated, onBack }) {
   )
 }
 
+function AccountPanel({ session, onClose, onDeleted }) {
+  const [password, setPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+
+  const handlePasswordChange = async (event) => {
+    event.preventDefault()
+    setError('')
+    setMessage('')
+    setIsSaving(true)
+
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+
+    setIsSaving(false)
+
+    if (updateError) {
+      setError(updateError.message)
+      return
+    }
+
+    setPassword('')
+    setMessage('Your password has been changed.')
+  }
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Delete your Adrafteo account permanently? All your templates will be deleted and cannot be recovered.',
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    const secondConfirmation = window.confirm(
+      `Final confirmation: permanently delete the account for ${session.user.email}?`,
+    )
+
+    if (!secondConfirmation) {
+      return
+    }
+
+    setError('')
+    setIsSaving(true)
+    const { error: deleteError } = await supabase.rpc('delete_my_account')
+
+    if (deleteError) {
+      setIsSaving(false)
+      setError(deleteError.message)
+      return
+    }
+
+    await supabase.auth.signOut()
+    onDeleted()
+  }
+
+  return (
+    <Modal
+      title="Account settings"
+      subtitle={`Signed in as ${session.user.email}`}
+      onClose={onClose}
+    >
+      <div className="account-panel">
+        <section className="account-section">
+          <div>
+            <h3>Change password</h3>
+            <p>Choose a new password for your Adrafteo account.</p>
+          </div>
+          <form className="form" onSubmit={handlePasswordChange}>
+            <label>
+              <span>New password</span>
+              <input
+                type="password"
+                minLength={6}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="At least 6 characters"
+                required
+              />
+            </label>
+            <button type="submit" className="button button--primary" disabled={isSaving}>
+              Change password
+            </button>
+          </form>
+        </section>
+
+        <section className="account-section account-section--danger">
+          <div>
+            <h3>Delete account</h3>
+            <p>This action is permanent. Your account and all saved templates will be deleted and cannot be recovered.</p>
+          </div>
+          <button type="button" className="button button--danger" onClick={handleDeleteAccount} disabled={isSaving}>
+            Permanently delete my account
+          </button>
+        </section>
+
+        {error ? <p className="error-message">{error}</p> : null}
+        {message ? <p className="status-message">{message}</p> : null}
+      </div>
+    </Modal>
+  )
+}
+
 function LandingPage() {
   const [showAuth, setShowAuth] = useState(false)
 
@@ -450,6 +553,7 @@ function App() {
   const [templates, setTemplates] = useState([])
   const [editorTemplate, setEditorTemplate] = useState(null)
   const [generatorTemplate, setGeneratorTemplate] = useState(null)
+  const [showAccountPanel, setShowAccountPanel] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -573,6 +677,9 @@ function App() {
           <button type="button" className="button button--ghost" onClick={() => supabase.auth.signOut()}>
             Sign out
           </button>
+          <button type="button" className="button button--ghost" onClick={() => setShowAccountPanel(true)}>
+            Account
+          </button>
           <button
             type="button"
             className="button button--primary button--large"
@@ -659,6 +766,14 @@ function App() {
 
       {generatorTemplate ? (
         <GeneratorPanel template={generatorTemplate} onClose={() => setGeneratorTemplate(null)} />
+      ) : null}
+
+      {showAccountPanel ? (
+        <AccountPanel
+          session={session}
+          onClose={() => setShowAccountPanel(false)}
+          onDeleted={() => setShowAccountPanel(false)}
+        />
       ) : null}
     </div>
   )
