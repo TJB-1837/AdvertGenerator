@@ -84,7 +84,7 @@ function AuthPanel({ onAuthenticated, onBack }) {
   return (
     <main className="auth-shell">
       <section className="auth-panel">
-        <p className="eyebrow">AdvertTemplate</p>
+        <p className="eyebrow">Adrafteo</p>
         <h1>{mode === 'sign-in' ? 'Welcome back.' : 'Create your workspace.'}</h1>
         <p className="topbar__subtitle">Your templates are securely saved to your Supabase account.</p>
         <form className="form" onSubmit={handleSubmit}>
@@ -125,9 +125,9 @@ function LandingPage() {
   return (
     <main className="landing-page">
       <nav className="landing-nav">
-        <a className="landing-brand" href="#top" aria-label="AdvertTemplate home">
+        <a className="landing-brand" href="#top" aria-label="Adrafteo home">
           <span className="landing-brand__mark">A</span>
-          <span>AdvertTemplate</span>
+          <span>Adrafteo</span>
         </a>
         <button type="button" className="button button--ghost" onClick={() => setShowAuth(true)}>
           Sign in
@@ -149,9 +149,9 @@ function LandingPage() {
           </div>
         </div>
 
-        <div className="product-preview" aria-label="AdvertTemplate product preview">
+        <div className="product-preview" aria-label="Adrafteo product preview">
           <div className="product-preview__topbar">
-            <span className="product-preview__logo">AdvertTemplate</span>
+            <span className="product-preview__logo">Adrafteo</span>
             <span className="product-preview__avatar">JD</span>
           </div>
           <div className="product-preview__body">
@@ -264,12 +264,20 @@ function Modal({ title, subtitle, onClose, children, wide = false }) {
   )
 }
 
-function TemplateForm({ initialTemplate, onSave, onCancel }) {
+function TemplateForm({ initialTemplate, onSave, onCancel, onDirtyChange }) {
   const [name, setName] = useState(initialTemplate?.name ?? '')
   const [title, setTitle] = useState(initialTemplate?.title ?? '')
   const [content, setContent] = useState(initialTemplate?.content ?? '')
 
   const variables = useMemo(() => extractVariables(`${title}\n${content}`), [title, content])
+
+  useEffect(() => {
+    const isDirty = name !== (initialTemplate?.name ?? '')
+      || title !== (initialTemplate?.title ?? '')
+      || content !== (initialTemplate?.content ?? '')
+
+    onDirtyChange(isDirty)
+  }, [content, initialTemplate, name, onDirtyChange, title])
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -442,6 +450,7 @@ function App() {
   const [templates, setTemplates] = useState([])
   const [editorTemplate, setEditorTemplate] = useState(null)
   const [generatorTemplate, setGeneratorTemplate] = useState(null)
+  const [editorDirty, setEditorDirty] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -516,6 +525,16 @@ function App() {
       ? current.map((template) => (template.id === data.id ? data : template))
       : [data, ...current])
 
+    setEditorDirty(false)
+    setEditorTemplate(null)
+  }
+
+  const handleCloseEditor = () => {
+    if (editorDirty && !window.confirm('Are you sure you want to quit this window? Your unsaved changes will be lost.')) {
+      return
+    }
+
+    setEditorDirty(false)
     setEditorTemplate(null)
   }
 
@@ -544,7 +563,7 @@ function App() {
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">AdvertTemplate</p>
+          <p className="eyebrow">Adrafteo</p>
           <h1>Build Vinted and eBay adverts faster.</h1>
           <p className="topbar__subtitle">
             Save reusable templates, fill variables, and copy ready-to-post listings in seconds.
@@ -559,6 +578,7 @@ function App() {
             className="button button--primary button--large"
             onClick={() => {
               setGeneratorTemplate(null)
+              setEditorDirty(false)
               setEditorTemplate({ name: '', title: '', content: '' })
             }}
           >
@@ -611,6 +631,7 @@ function App() {
               className="button button--primary"
               onClick={() => {
                 setGeneratorTemplate(null)
+                setEditorDirty(false)
                 setEditorTemplate({ name: '', title: '', content: '' })
               }}
             >
@@ -624,13 +645,14 @@ function App() {
         <Modal
           title={editorTemplate.id ? 'Edit template' : 'Create template'}
           subtitle="Write a reusable advert with placeholders in brackets."
-          onClose={() => setEditorTemplate(null)}
+          onClose={handleCloseEditor}
           wide
         >
           <TemplateForm
             initialTemplate={editorTemplate}
             onSave={handleSaveTemplate}
-            onCancel={() => setEditorTemplate(null)}
+            onCancel={handleCloseEditor}
+            onDirtyChange={setEditorDirty}
           />
         </Modal>
       ) : null}

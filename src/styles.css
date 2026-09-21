@@ -131,7 +131,7 @@ button {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -168,13 +168,13 @@ button {
 .template-card__preview {
   margin: 16px 0 18px;
   padding: 16px;
-  min-height: 180px;
+  height: 180px;
   border-radius: 18px;
   background: rgba(2, 6, 23, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.14);
   white-space: pre-wrap;
   color: #e2e8f0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .template-card__footer {
@@ -771,7 +771,8 @@ textarea {
   }
 
   .stats-row,
-  .generator-layout {
+  .generator-layout,
+  .grid {
     grid-template-columns: 1fr;
   }
 
