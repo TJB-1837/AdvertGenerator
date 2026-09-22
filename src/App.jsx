@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
 
-const FEEDBACK_EMAIL = 'feedback@adrafteo.com'
-
 function createId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID()
@@ -234,33 +232,28 @@ function FeedbackPanel({ onClose }) {
     setStatus('')
     setIsSending(true)
 
-    try {
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, message }),
-      })
-      const result = await response.json()
+    const { error: insertError } = await supabase.from('feedback').insert({
+      name: name.trim() || null,
+      email: email.trim() || null,
+      message: message.trim(),
+    })
 
-      if (!response.ok) {
-        throw new Error(result.error || 'The feedback could not be sent.')
-      }
-
-      setStatus('Thanks! Your feedback has been sent.')
+    if (insertError) {
+      setError(insertError.message)
+    } else {
+      setStatus('Thanks! Your feedback has been recorded.')
       setName('')
       setEmail('')
       setMessage('')
-    } catch (sendError) {
-      setError(sendError.message)
-    } finally {
-      setIsSending(false)
     }
+
+    setIsSending(false)
   }
 
   return (
     <Modal
       title="Give a Feedback!"
-      subtitle="Your feedback goes directly to the Adrafteo team."
+      subtitle="Your feedback is saved securely for the Adrafteo team."
       onClose={onClose}
     >
       <form className="form feedback-form" onSubmit={handleSubmit}>
