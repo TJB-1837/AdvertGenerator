@@ -783,7 +783,7 @@ function App() {
           </div>
           <div className="stat-card">
             <span>Storage</span>
-            <strong>Local first</strong>
+            <strong>Cloud synced</strong>
           </div>
         </section>
 
