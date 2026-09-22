@@ -224,25 +224,43 @@ function FeedbackPanel({ onClose }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
+  const [isSending, setIsSending] = useState(false)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+    setError('')
+    setStatus('')
+    setIsSending(true)
 
-    const subject = `Adrafteo feedback from ${name || 'a user'}`
-    const body = [
-      `Name: ${name || 'Not provided'}`,
-      `Email: ${email || 'Not provided'}`,
-      '',
-      message,
-    ].join('\n')
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message }),
+      })
+      const result = await response.json()
 
-    window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      if (!response.ok) {
+        throw new Error(result.error || 'The feedback could not be sent.')
+      }
+
+      setStatus('Thanks! Your feedback has been sent.')
+      setName('')
+      setEmail('')
+      setMessage('')
+    } catch (sendError) {
+      setError(sendError.message)
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
     <Modal
       title="Give a Feedback!"
-      subtitle={`Your message will be prepared for ${FEEDBACK_EMAIL}.`}
+      subtitle="Your feedback goes directly to the Adrafteo team."
       onClose={onClose}
     >
       <form className="form feedback-form" onSubmit={handleSubmit}>
@@ -260,7 +278,11 @@ function FeedbackPanel({ onClose }) {
         </label>
         <div className="form__actions">
           <button type="button" className="button button--ghost" onClick={onClose}>Cancel</button>
-          <button type="submit" className="button button--primary">Open email draft</button>
+          {error ? <p className="error-message">{error}</p> : null}
+          {status ? <p className="status-message">{status}</p> : null}
+          <button type="submit" className="button button--primary" disabled={isSending}>
+            {isSending ? 'Sending...' : 'Send feedback'}
+          </button>
         </div>
       </form>
     </Modal>
