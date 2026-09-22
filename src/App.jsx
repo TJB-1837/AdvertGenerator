@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib/supabase'
 
+const FEEDBACK_EMAIL = 'feedback@adrafteo.com'
+
 function createId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID()
@@ -218,8 +220,56 @@ function AccountPanel({ session, onClose, onDeleted }) {
   )
 }
 
+function FeedbackPanel({ onClose }) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+
+    const subject = `Adrafteo feedback from ${name || 'a user'}`
+    const body = [
+      `Name: ${name || 'Not provided'}`,
+      `Email: ${email || 'Not provided'}`,
+      '',
+      message,
+    ].join('\n')
+
+    window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
+  return (
+    <Modal
+      title="Give a Feedback!"
+      subtitle={`Your message will be prepared for ${FEEDBACK_EMAIL}.`}
+      onClose={onClose}
+    >
+      <form className="form feedback-form" onSubmit={handleSubmit}>
+        <label>
+          <span>Name</span>
+          <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" />
+        </label>
+        <label>
+          <span>Email</span>
+          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />
+        </label>
+        <label>
+          <span>Feedback</span>
+          <textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Tell us what you think..." rows={7} required />
+        </label>
+        <div className="form__actions">
+          <button type="button" className="button button--ghost" onClick={onClose}>Cancel</button>
+          <button type="submit" className="button button--primary">Open email draft</button>
+        </div>
+      </form>
+    </Modal>
+  )
+}
+
 function LandingPage() {
   const [showAuth, setShowAuth] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
 
   if (showAuth) {
     return <AuthPanel onAuthenticated={() => {}} onBack={() => setShowAuth(false)} />
@@ -232,9 +282,14 @@ function LandingPage() {
           <span className="landing-brand__mark">A</span>
           <span>Adrafteo</span>
         </a>
-        <button type="button" className="button button--ghost" onClick={() => setShowAuth(true)}>
-          Sign in
-        </button>
+        <div className="landing-nav__actions">
+          <button type="button" className="button button--ghost" onClick={() => setShowFeedback(true)}>
+            Give a Feedback!
+          </button>
+          <button type="button" className="button button--ghost" onClick={() => setShowAuth(true)}>
+            Sign in
+          </button>
+        </div>
       </nav>
 
       <section className="landing-hero" id="top">
@@ -303,8 +358,10 @@ function LandingPage() {
 
       <section className="landing-cta">
         <div><p className="eyebrow">Start with your next listing</p><h2>Build your little library of great adverts.</h2></div>
+        <button type="button" className="button button--ghost button--large" onClick={() => setShowFeedback(true)}>Give a Feedback!</button>
         <button type="button" className="button button--primary button--large" onClick={() => setShowAuth(true)}>Create your free workspace <span aria-hidden="true">→</span></button>
       </section>
+      {showFeedback ? <FeedbackPanel onClose={() => setShowFeedback(false)} /> : null}
     </main>
   )
 }

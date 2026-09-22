@@ -445,6 +445,13 @@ textarea {
   padding: 0 0 24px;
 }
 
+.landing-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .landing-brand {
   display: inline-flex;
   align-items: center;
@@ -777,6 +784,10 @@ textarea {
   color: #ecfeff;
 }
 
+.feedback-form {
+  gap: 18px;
+}
+
 .button--text {
   border: 0;
   color: #7dd3fc;
@@ -818,6 +829,15 @@ textarea {
 
   .landing-page {
     width: min(100% - 32px, 600px);
+  }
+
+  .landing-nav {
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .landing-nav__actions {
+    justify-content: flex-end;
   }
 
   .landing-hero {
