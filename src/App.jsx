@@ -611,6 +611,7 @@ function App() {
   const [editorTemplate, setEditorTemplate] = useState(null)
   const [generatorTemplate, setGeneratorTemplate] = useState(null)
   const [showAccountPanel, setShowAccountPanel] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -731,6 +732,9 @@ function App() {
           </p>
         </div>
         <div className="topbar__actions">
+          <button type="button" className="button button--ghost" onClick={() => setShowFeedback(true)}>
+            Give a Feedback!
+          </button>
           <button type="button" className="button button--ghost" onClick={() => supabase.auth.signOut()}>
             Sign out
           </button>
@@ -832,6 +836,8 @@ function App() {
           onDeleted={() => setShowAccountPanel(false)}
         />
       ) : null}
+
+      {showFeedback ? <FeedbackPanel onClose={() => setShowFeedback(false)} /> : null}
     </div>
   )
 }
