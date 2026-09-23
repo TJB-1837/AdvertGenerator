@@ -29,6 +29,27 @@ body {
   background: transparent;
 }
 
+:focus-visible {
+  outline: 3px solid #e9b949;
+  outline-offset: 4px;
+}
+
+.skip-link {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #17211f;
+  background: #e9b949;
+  transform: translateY(-180%);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 button,
 input,
 textarea {
@@ -768,6 +789,56 @@ textarea {
   color: #94a3b8;
 }
 
+.landing-faq {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  gap: 72px;
+  padding: 20px 0 100px;
+}
+
+.faq-list {
+  border-top: 1px solid #334155;
+}
+
+.faq-list details {
+  border-bottom: 1px solid #334155;
+}
+
+.faq-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 0;
+  color: #f8fafc;
+  cursor: pointer;
+  font-size: 1.05rem;
+  font-weight: 700;
+  list-style: none;
+}
+
+.faq-list summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-list summary::after {
+  color: #e9b949;
+  content: '+';
+  font-size: 1.5rem;
+  font-weight: 400;
+}
+
+.faq-list details[open] summary::after {
+  content: '−';
+}
+
+.faq-list details p {
+  max-width: 62ch;
+  margin: -4px 36px 22px 0;
+  color: #a7b3b0;
+  line-height: 1.7;
+}
+
 .landing-cta {
   display: flex;
   align-items: end;
@@ -792,6 +863,17 @@ textarea {
   border: 0;
   color: #7dd3fc;
   background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 @media (max-width: 860px) {
@@ -855,7 +937,8 @@ textarea {
   }
 
   .product-preview__editor,
-  .benefit-grid {
+  .benefit-grid,
+  .landing-faq {
     grid-template-columns: 1fr;
     flex-direction: column;
   }

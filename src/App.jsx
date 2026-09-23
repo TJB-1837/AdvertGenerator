@@ -291,8 +291,10 @@ function LandingPage() {
   }
 
   return (
-    <main className="landing-page">
-      <nav className="landing-nav">
+    <>
+      <a className="skip-link" href="#main-content">Skip to content</a>
+      <main className="landing-page" id="main-content">
+      <nav className="landing-nav" aria-label="Primary navigation">
         <a className="landing-brand" href="#top" aria-label="Adrafteo home">
           <span className="landing-brand__mark">A</span>
           <span>Adrafteo</span>
@@ -310,9 +312,9 @@ function LandingPage() {
       <section className="landing-hero" id="top">
         <div className="landing-hero__copy">
           <p className="eyebrow">Your listings, on autopilot</p>
-          <h1>Write once.<br /><em>Sell faster.</em></h1>
+          <h1>Reusable marketplace templates.<br /><em>Sell faster.</em></h1>
           <p className="landing-hero__lede">
-            Turn your best listing ideas into reusable templates. Fill in the details, copy a polished advert, and get back to selling.
+            Create one strong listing template, fill in the product details, and copy a polished advert for Vinted, eBay, Depop, or wherever you sell.
           </p>
           <div className="landing-hero__actions">
             <button type="button" className="button button--primary button--large" onClick={() => setShowAuth(true)}>
@@ -322,7 +324,7 @@ function LandingPage() {
           </div>
         </div>
 
-        <div className="product-preview" aria-label="Adrafteo product preview">
+        <div className="product-preview" role="img" aria-label="Adrafteo product preview">
           <div className="product-preview__topbar">
             <span className="product-preview__logo">Adrafteo</span>
             <span className="product-preview__avatar">JD</span>
@@ -371,13 +373,43 @@ function LandingPage() {
         </div>
       </section>
 
+      <section className="landing-faq" aria-labelledby="faq-heading">
+        <div className="landing-section-heading">
+          <p className="eyebrow">Good questions deserve clear answers</p>
+          <h2 id="faq-heading">Everything you need to know before your next listing.</h2>
+        </div>
+        <div className="faq-list">
+          <details>
+            <summary>What is Adrafteo?</summary>
+            <p>Adrafteo is a web app for resellers who want to save reusable marketplace listing templates, fill in changing product details, and copy ready-to-post adverts.</p>
+          </details>
+          <details>
+            <summary>How do reusable listing templates work?</summary>
+            <p>Write a title and description once, then add variables such as [Brand], [Size], or [Condition]. When you generate an advert, Adrafteo replaces those variables with the details of the item you are listing.</p>
+          </details>
+          <details>
+            <summary>Can I use one template across different marketplaces?</summary>
+            <p>Yes. Adrafteo keeps your templates reusable so you can adapt the same listing workflow for Vinted, eBay, Depop, and other marketplaces. You can adjust the wording whenever a platform needs a different format.</p>
+          </details>
+          <details>
+            <summary>Are my templates private?</summary>
+            <p>Your saved templates belong to your authenticated Adrafteo account. They are stored per user in Supabase and are not intended to be shared publicly.</p>
+          </details>
+          <details>
+            <summary>Does Adrafteo use AI to generate adverts?</summary>
+            <p>No. Adrafteo currently generates adverts in your browser by replacing the variables in your own templates. Your copy stays under your control and no AI service is required for ordinary generation.</p>
+          </details>
+        </div>
+      </section>
+
       <section className="landing-cta">
         <div><p className="eyebrow">Start with your next listing</p><h2>Build your little library of great adverts.</h2></div>
         <button type="button" className="button button--ghost button--large" onClick={() => setShowFeedback(true)}>Give a Feedback!</button>
         <button type="button" className="button button--primary button--large" onClick={() => setShowAuth(true)}>Create your free workspace <span aria-hidden="true">→</span></button>
       </section>
       {showFeedback ? <FeedbackPanel onClose={() => setShowFeedback(false)} /> : null}
-    </main>
+      </main>
+    </>
   )
 }
 

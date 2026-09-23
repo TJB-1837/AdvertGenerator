@@ -24,6 +24,9 @@ Adrafteo is an early-beta SaaS for resellers. Users create reusable marketplace 
 - Do not bypass RLS. Any new Supabase table or RPC must include appropriate policies and a SQL file under `supabase/`.
 - Give every user-owned record a `user_id` and scope reads, updates, and deletes to the current user.
 - Default templates must be personal copies created for each user, never shared mutable rows.
+- Maximize SEO and GEO thoughtfully for all public user-facing content and features. Use clear intent-based copy, semantic headings, accessible HTML, accurate metadata, canonical URLs, Open Graph data, structured data, internal links, crawlable public content, and useful FAQ-style answers where relevant.
+- Keep SEO and GEO factual and user-first: never use keyword stuffing, hidden text, fake reviews, misleading JSON-LD, duplicate thin pages, or expose private authenticated content to crawlers.
+- Preserve Adrafteo's multi-platform positioning. Do not create marketplace-specific pages unless each page provides genuinely distinct, useful content and still explains the reusable cross-platform template model.
 
 ## Validation
 
@@ -34,6 +37,8 @@ npm run build
 ```
 
 Also inspect relevant diagnostics and test the changed workflow when possible. Do not claim a feature works without mentioning validation or a remaining setup step.
+
+For SEO/GEO-related changes, also verify public metadata, canonical URLs, Open Graph previews, robots.txt, sitemap.xml, structured data, mobile rendering, accessibility, and Core Web Vitals when the relevant surfaces exist.
 
 ## Project Documentation
 
