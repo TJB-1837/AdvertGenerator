@@ -231,24 +231,27 @@ The current sitemap contains only `https://adrafteo.com/` because the applicatio
 - [x] Include only facts that are true: product name, URL, description, category, and supported operating context.
 - [x] Add `FAQPage` structured data only when the same questions and answers are visibly present on the page.
 - [x] Do not add fake reviews, ratings, prices, or claims that are not displayed and verifiable.
-- [ ] Validate structured data after deployment with Google's rich result testing tools.
+- [x] Validate the `WebApplication` structured data after deployment with Google's rich result testing tools.
+- [ ] Confirm that Google's tools detect the `FAQPage` structured data after the production page has finished processing.
 
-The current JSON-LD is embedded in `index.html` and describes the public Adrafteo application and the visible landing-page FAQ. External validation remains pending until the production domain serves the updated build.
+The current JSON-LD is embedded in `index.html` and describes the public Adrafteo application and the visible landing-page FAQ. Adrafteo is currently free during the beta. Do not add `aggregateRating` until genuine, verifiable user reviews exist. Do not add `offers` until the future subscription plans and pricing are defined and publicly published; possible prices such as 2/6 or 5/15 are only hypotheses at this stage.
 
 **Objective:** give search engines and generative systems machine-readable context about Adrafteo without creating misleading markup.
 
 ### Phase 6: performance, accessibility, and rendering
 
-- [ ] Check the mobile layout visually at representative phone and desktop widths.
+- [x] Check the mobile layout visually at representative phone and desktop widths.
 - [x] Add a skip link, visible keyboard focus states, navigation labeling, and reduced-motion support.
 - [x] Preserve labels and semantic descriptions for the public interactive elements and product preview.
-- [ ] Audit contrast and image alternative text in a browser-based accessibility check.
-- [ ] Measure Core Web Vitals: Largest Contentful Paint, Interaction to Next Paint, and Cumulative Layout Shift.
+- [x] Audit contrast and image alternative text in a browser-based accessibility check.
+- [x] Measure Core Web Vitals: LCP 0.24s, INP within the passing range, and CLS 0.
 - [ ] Reduce unnecessary JavaScript and avoid layout shifts on the public page.
+- [x] Confirm that the initial Open Graph asset is displayed by social preview tools.
+- [ ] Redesign the Open Graph image so it matches the final Adrafteo visual identity and theme palette.
 - [ ] Replace the initial SVG Open Graph asset with an optimized bitmap image if social-platform compatibility testing requires it. It should be a social preview image, not a decorative page background.
 - [ ] Assess whether the public landing page should be pre-rendered or moved to SSR if organic search becomes a major acquisition channel.
 
-The code now includes basic keyboard and motion accessibility support. Core Web Vitals, contrast, mobile rendering, and Open Graph format compatibility still require browser or production-domain testing.
+The public page currently scores 100 in the reported Lighthouse categories. The report identifies approximately 75 kB of unused JavaScript; this is a secondary optimization task, not a current user-facing performance blocker. The Open Graph asset works technically but needs a future UX/UI and brand-palette redesign for the planned light and dark themes. Google Search Console is still processing the submitted data.
 
 **Objective:** make the public page fast, stable, usable, and available in a form that crawlers can reliably process.
 
@@ -303,6 +306,8 @@ This phase is intentionally last. The domain is already connected to Google Sear
 - Use Supabase as the source of truth for user data.
 - Give each user a copy of the default template so it can be edited or deleted independently.
 - Keep the MVP focused on reusable text templates before adding AI or marketplace integrations.
+- Keep Adrafteo free during the current beta while validating repeated user value.
+- Defer the economic model and subscription tiers until the feature set and user feedback justify a pricing decision.
 
 ## Development Workflow
 

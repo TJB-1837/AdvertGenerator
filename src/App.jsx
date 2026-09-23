@@ -312,7 +312,7 @@ function LandingPage() {
       <section className="landing-hero" id="top">
         <div className="landing-hero__copy">
           <p className="eyebrow">Your listings, on autopilot</p>
-          <h1>Reusable marketplace templates.<br /><em>Sell faster.</em></h1>
+          <h1>Reusable marketplace listing templates.<br /><em>Sell faster.</em></h1>
           <p className="landing-hero__lede">
             Create one strong listing template, fill in the product details, and copy a polished advert for Vinted, eBay, Depop, or wherever you sell.
           </p>
