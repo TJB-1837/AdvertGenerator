@@ -280,14 +280,16 @@ The public page currently scores 100 in the reported Lighthouse categories. The 
 
 This phase is intentionally last. The domain is already connected to Google Search Console, but monitoring and submission still need to be completed after the public SEO files and content are ready.
 
-- [ ] Deploy the SEO changes to `https://adrafteo.com/`.
-- [ ] Confirm that `https://adrafteo.com/robots.txt` returns the expected file.
-- [ ] Confirm that `https://adrafteo.com/sitemap.xml` returns valid XML.
+- [x] Deploy the SEO changes to `https://adrafteo.com/`.
+- [x] Confirm that `https://adrafteo.com/robots.txt` returns the expected file.
+- [x] Confirm that `https://adrafteo.com/sitemap.xml` returns valid XML.
 - [ ] Submit the sitemap in Google Search Console.
 - [ ] Request indexing for the home page after the final public content is deployed.
 - [ ] Inspect indexing status, discovered URLs, search queries, impressions, clicks, click-through rate, and average position.
 - [ ] Configure Bing Webmaster Tools and submit the same sitemap when appropriate.
 - [ ] Review the data after several weeks and improve the pages based on real queries instead of assumptions.
+
+The production domain and SEO files are reachable. Google Search Console is still processing the property, and organic indexing has not yet been confirmed. A search for the brand and product phrase may therefore return the GitHub repository before Google discovers and indexes the public domain.
 
 **Objective:** measure discovery and search demand, identify technical problems, and improve the content using evidence.
 
@@ -308,6 +310,17 @@ This phase is intentionally last. The domain is already connected to Google Sear
 - Keep the MVP focused on reusable text templates before adding AI or marketplace integrations.
 - Keep Adrafteo free during the current beta while validating repeated user value.
 - Defer the economic model and subscription tiers until the feature set and user feedback justify a pricing decision.
+- Potential monetization hypothesis: a limited free plan for the core template workflow, a first paid plan with higher or removed limits plus listing management, and a higher plan with crosslisting and sales analytics. Prices and final plan names remain undecided.
+
+### Potential product and pricing ladder
+
+This is a hypothesis for validation, not a committed pricing model:
+
+1. **Free:** create reusable templates and generate adverts within a clear usage or storage limit.
+2. **Listing management plan:** unlock higher limits or unlimited usage, save and manage active listings, track listing status, and organize product information.
+3. **Crosslisting and analytics plan:** adapt or distribute listings across supported marketplaces when technically and contractually possible, then provide dashboards for sales performance, time to sale, and return on investment.
+
+The analytics plan must not promise ROI or time-to-sale insights until Adrafteo has reliable data such as item cost, fees, sale price, dates, shipping costs, and marketplace source. Crosslisting should begin with manual or export-assisted workflows unless official marketplace APIs provide a stable and permitted integration.
 
 ## Development Workflow
 
