@@ -52,6 +52,7 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Permanent account deletion with double confirmation
 - Default sneaker resale template per user
 - Feedback form for anonymous and authenticated visitors
+- Dedicated FAQ page linked beside the feedback action in public and authenticated navigation
 - Feedback storage in Supabase
 - Inventory page with one row per physical item, stock status, target sale price, realised sale price, fees, profit, ROI, multiple platforms, condition, notes, and optional template link
 - Inventory dashboard with stock, purchase value, target sale value, realised sales, and realised ROI
@@ -62,6 +63,7 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Lots have their own template, purchase/sale pricing, and a single lot-level advert generation action; common lot variables can prefill item-list content
 - Cross variables provide reusable per-user default values across all templates, with multi-line generator inputs and visible recognized-variable chips
 - Vercel deployment configuration
+- Legal footer navigation and dedicated English legal pages for the legal notice, privacy policy, and terms of use; owner identity and contact email are filled, while postal address, final hosting details, retention periods, and jurisdiction still require confirmation before public launch
 
 ## Supabase SQL Files
 
@@ -135,9 +137,10 @@ Configure the two `VITE_SUPABASE_*` variables in Vercel for Production, Preview,
 - No billing or subscriptions.
 - No admin dashboard for feedback; feedback is read from Supabase Table Editor.
 - Feedback submissions are insert-only but need CAPTCHA or rate limiting before a public launch.
+- Legal texts are present in-app; the owner name/contact email and retention periods are filled (two years after last connection for account data, 90 days for feedback), but the postal address, final hosting region, jurisdiction clause, and final legal review still need confirmation before going live.
 - No automated end-to-end tests yet.
 - No migration tooling; SQL files are currently run manually in Supabase.
-- SEO and GEO foundations are not implemented yet: metadata, Open Graph, robots.txt, sitemap.xml, JSON-LD, FAQ content, and SEO monitoring remain to be added.
+- SEO and GEO foundations are not implemented yet: metadata, Open Graph, robots.txt, sitemap.xml, JSON-LD, and SEO monitoring remain to be added. FAQ content is now available on the public landing page and a dedicated FAQ page.
 
 ## Next Priorities
 

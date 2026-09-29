@@ -1,0 +1,24 @@
+# Adrafteo
+
+## Overview
+Adrafteo is a web application for resellers who want to save reusable marketplace listing templates, fill in product variables, and copy polished adverts for platforms like Vinted, eBay, Depop, and other marketplaces.
+
+## Main site
+- https://adrafteo.com/
+
+## Purpose
+Adrafteo helps marketplace sellers create reusable title and description templates, replace variables such as brand, size, condition, or price, and generate ready-to-post listings without writing the full text from scratch each time.
+
+## Primary user value
+- Save reusable listing templates
+- Fill variables and cross-variable defaults
+- Generate clean marketplace adverts
+- Track inventory, purchase value, target sale value, realised sales, and profit
+
+## Key public pages
+- https://adrafteo.com/
+- https://adrafteo.com/robots.txt
+- https://adrafteo.com/sitemap.xml
+
+## Important note
+This service is a user-authenticated web tool. The app stores user templates and inventory data in Supabase and is intended to help a single user or a small personal user base work efficiently with marketplace adverts.
