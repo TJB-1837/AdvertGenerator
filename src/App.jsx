@@ -53,6 +53,15 @@ function extractVariables(content) {
     })
 }
 
+function variableKey(name) {
+  return name.toLowerCase().replace(/[\s_-]/g, '')
+}
+
+function getInitialVariableValue(variable, initialValues, crossVariables) {
+  const specificValue = initialValues[variable]
+  return specificValue?.trim() ? specificValue : crossVariables[variableKey(variable)] ?? crossVariables[variable] ?? ''
+}
+
 function generateAdvertText(content, values) {
   return content.replace(/\[([^\[\]]+)\]/g, (_, rawName) => {
     const name = rawName.trim()
@@ -79,7 +88,7 @@ function getGeneratorValues(item, variables) {
   }
 
   variables.forEach((variable) => {
-    values[variable] = knownValues[variable.toLowerCase().replace(/[\s_-]/g, '')] ?? ''
+    values[variable] = knownValues[variableKey(variable)] ?? ''
   })
 
   return values
@@ -107,7 +116,7 @@ function getLotGeneratorValues(lot, items, variables) {
   }
 
   variables.forEach((variable) => {
-    values[variable] = knownValues[variable.toLowerCase().replace(/[\s_-]/g, '')] ?? ''
+    values[variable] = knownValues[variableKey(variable)] ?? ''
   })
 
   return values
@@ -655,11 +664,11 @@ function GeneratorPanel({ template, initialValues = {}, crossVariables = {}, onC
     () => extractVariables(`${template.title ?? ''}\n${template.content}`),
     [template.title, template.content],
   )
-  const [values, setValues] = useState(() => Object.fromEntries(variables.map((variable) => [variable, initialValues[variable] ?? crossVariables[variable] ?? ''])))
+  const [values, setValues] = useState(() => Object.fromEntries(variables.map((variable) => [variable, getInitialVariableValue(variable, initialValues, crossVariables)])))
   const [copyStatus, setCopyStatus] = useState('')
 
   useEffect(() => {
-    setValues(Object.fromEntries(variables.map((variable) => [variable, initialValues[variable] ?? crossVariables[variable] ?? ''])))
+    setValues(Object.fromEntries(variables.map((variable) => [variable, getInitialVariableValue(variable, initialValues, crossVariables)])))
     setCopyStatus('')
   }, [crossVariables, initialValues, template.id, variables])
 
@@ -1291,19 +1300,22 @@ function App() {
       }
     }
 
-    const payload = rows.map((row) => ({
-      ...(row.id ? { id: row.id } : {}),
-      user_id: session.user.id,
-      variable_name: row.variable_name,
-      default_value: row.default_value,
-    }))
-    const { data, error: saveError } = await supabase
-      .from('cross_variables')
-      .upsert(payload, { onConflict: 'user_id,variable_name' })
-      .select()
+    for (const row of rows) {
+      const query = row.id
+        ? supabase.from('cross_variables').update({ variable_name: row.variable_name, default_value: row.default_value }).eq('id', row.id).select().single()
+        : supabase.from('cross_variables').insert({ user_id: session.user.id, variable_name: row.variable_name, default_value: row.default_value }).select().single()
+      const { error: saveError } = await query
 
-    if (saveError) {
-      setError(saveError.message)
+      if (saveError) {
+        setError(saveError.message)
+        return
+      }
+    }
+
+    const { data, error: loadError } = await supabase.from('cross_variables').select('*').order('variable_name', { ascending: true })
+
+    if (loadError) {
+      setError(loadError.message)
       return
     }
 
@@ -1434,7 +1446,7 @@ function App() {
   }
 
   const templateCount = templates.length
-  const crossVariableValues = Object.fromEntries(crossVariables.map((variable) => [variable.variable_name, variable.default_value]))
+  const crossVariableValues = Object.fromEntries(crossVariables.map((variable) => [variableKey(variable.variable_name), variable.default_value]))
 
   return (
     <div className="app-shell">
