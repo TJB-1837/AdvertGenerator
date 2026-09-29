@@ -53,6 +53,14 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Default sneaker resale template per user
 - Feedback form for anonymous and authenticated visitors
 - Feedback storage in Supabase
+- Inventory page with one row per physical item, stock status, target sale price, realised sale price, fees, profit, ROI, multiple platforms, condition, notes, and optional template link
+- Inventory dashboard with stock, purchase value, target sale value, realised sales, and realised ROI
+- Inventory items can launch their linked template in the advert generator, with obvious item values prefilled when variable names match
+- Inventory lots can group multiple detailed items under one expandable summary row; standalone items remain supported
+- Lot creation supports common purchase date, status, type, condition, and platform values that can be applied to all sub-items before saving
+- Templates, standalone inventory items, and lot sub-items can be duplicated into editable copies
+- Lots have their own template, purchase/sale pricing, and a single lot-level advert generation action; common lot variables can prefill item-list content
+- Cross variables provide reusable per-user default values across all templates, with multi-line generator inputs and visible recognized-variable chips
 - Vercel deployment configuration
 
 ## Supabase SQL Files
@@ -62,6 +70,8 @@ Run these files in the Supabase SQL Editor:
 - `supabase/default_template.sql`: creates a personal starter template for new users and adds it to existing users once.
 - `supabase/delete_my_account.sql`: creates the authenticated account deletion RPC.
 - `supabase/feedback.sql`: creates the feedback table with insert-only RLS policies.
+- `supabase/inventory.sql`: creates the user-owned inventory and inventory-lot tables, RLS policies, indexes, item relationships, and the optional template relationship.
+- `supabase/cross_variables.sql`: creates reusable user-owned default values for variables shared across templates, with RLS policies.
 
 The `templates` table must already exist with at least:
 
@@ -119,6 +129,9 @@ Configure the two `VITE_SUPABASE_*` variables in Vercel for Production, Preview,
 
 - No AI-assisted listing generation yet.
 - No image upload or image hosting.
+- Inventory SQL must be run manually in Supabase before the Inventory page can load or save items. Re-run the file for existing inventory installations to add the multi-platform column and migrate the legacy platform value.
+- Lot support requires re-running `supabase/inventory.sql` after the existing inventory migration so the `inventory_lots` table and `lot_id` relationship are created.
+- Cross variables require running `supabase/cross_variables.sql` in Supabase before using the `Cross variables` menu.
 - No billing or subscriptions.
 - No admin dashboard for feedback; feedback is read from Supabase Table Editor.
 - Feedback submissions are insert-only but need CAPTCHA or rate limiting before a public launch.
