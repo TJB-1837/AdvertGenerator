@@ -262,6 +262,9 @@ function AccountPanel({ session, onClose, onDeleted }) {
         <section className="account-section">
           <div>
             <h3>Change password</h3>
+            <button type="button" className="button button--ghost" onClick={onOpenFaq}>
+              FAQ
+            </button>
             <p>Choose a new password for your Adrafteo account.</p>
           </div>
           <form className="form" onSubmit={handlePasswordChange}>
@@ -363,7 +366,177 @@ function FeedbackPanel({ onClose }) {
   )
 }
 
-function LandingPage() {
+function Footer({ onOpenLegalPage, onHome }) {
+  return (
+    <footer className="site-footer">
+      <div className="site-footer__nav">
+        {onHome ? <button type="button" className="button button--text" onClick={onHome}>Home</button> : null}
+        <button type="button" className="button button--text" onClick={() => onOpenLegalPage('mentions')}>Legal notice</button>
+        <button type="button" className="button button--text" onClick={() => onOpenLegalPage('confidentialite')}>Privacy policy</button>
+        <button type="button" className="button button--text" onClick={() => onOpenLegalPage('cgu')}>Terms</button>
+      </div>
+      <p className="site-footer__meta">Adrafteo — reusable marketplace listing template tool</p>
+    </footer>
+  )
+}
+
+const legalContent = {
+  mentions: {
+    title: 'Legal notice',
+    intro: 'This website is operated by an individual established in France. The information below must be completed by the editor before the final public launch.',
+    blocks: [
+      {
+        heading: 'Website owner',
+        body: '<p>First name and surname: Antoine MARMOL.</p><p>Status: private individual established in France.</p><p>Contact email: adrafteo@gmail.com.</p><p>Phone: None.</p>'
+      },
+      {
+        heading: 'Host',
+        body: '<p>Primary website host: Vercel, Inc.</p><p>Address: 340 S Lemon Ave #4133, Walnut, CA 91789, United States.</p><p>Database host: Supabase, Inc.</p><p>Main processing location: Ireland for the Supabase database, with application data hosted in Europe/United States depending on the Vercel region used.</p>'
+      }
+    ]
+  },
+  confidentialite: {
+    title: 'Privacy policy',
+    intro: 'This policy describes the personal data processing carried out in connection with the Adrafteo service, based on the code currently present in the project.',
+    blocks: [
+      {
+        heading: 'Data collected in the project code',
+        body: '<p>The site collects the following data for the user account and service management: email address, password, Supabase identifier, template name, template title, template content, cross variables, inventory items (name, status, type, condition, purchase price, target sale price, sale price, fees, dates, platforms, notes), inventory lots, and feedback messages (name, email, message).</p><p>These data are stored in Supabase and linked to the connected user through <code>user_id</code> in the project tables.</p>'
+      },
+      {
+        heading: 'Purposes',
+        body: '<ul><li>Create and manage a user account.</li><li>Save personal templates and reusable variables.</li><li>Track inventory, purchases, sales, margins and lots.</li><li>Collect user feedback via the feedback form.</li><li>Ensure the security and correct operation of the service.</li></ul>'
+      },
+      {
+        heading: 'Legal basis and retention period',
+        body: '<p>For the user account and personal data storage, the legal basis is the performance of the service contract and account management.</p><p>Account data, templates, inventory and variables are kept while the account remains active and for up to two years after the user\'s last connection, unless the user requests earlier deletion.</p><p>Feedback messages are kept for up to 90 days after submission, then deleted from the feedback table unless a longer period is legally justified.</p>'
+      },
+      {
+        heading: 'Recipients',
+        body: '<p>Data are accessible to the user, the website editor, and the hosting providers: Supabase and Vercel.</p><p>Data are not transferred to a marketing tool or social network in the code identified today, but international transfers must be verified in the final Supabase and Vercel configuration.</p>'
+      },
+      {
+        heading: 'Data subject rights',
+        body: '<p>Under the GDPR, any person may request access, rectification, erasure, objection, restriction of processing and data portability.</p><p>To exercise these rights, contact: adrafteo@gmail.com.</p><p>You may also file a complaint with CNIL if you believe your rights are not respected.</p>'
+      },
+      {
+        heading: 'How to exercise your rights',
+        body: '<p>Send your request to <a href="mailto:adrafteo@gmail.com">adrafteo@gmail.com</a> with the subject line “GDPR request”. Describe the right you wish to exercise and the account email concerned. Additional information may be requested when necessary to verify your identity.</p><p>Requests are handled without undue delay and generally within one month of receipt. This period may be extended by up to two additional months for complex requests; you will be informed if an extension is necessary.</p>'
+      }
+    ]
+  },
+  cgu: {
+    title: 'Terms of use',
+    intro: 'The following Terms apply to the Adrafteo service in its current version, which includes user account creation and personal template management.',
+    blocks: [
+      {
+        heading: 'Service purpose',
+        body: '<p>Adrafteo allows a user to create reusable templates for marketplace listings, fill in variables, and generate ready-to-copy listing text.</p>'
+      },
+      {
+        heading: 'Access and registration',
+        body: '<p>Access to the service requires creating an account using an email address and password. The user is responsible for the information provided and for the confidentiality of their password.</p>'
+      },
+      {
+        heading: 'Use of the service',
+        body: '<ul><li>Use the service only for lawful purposes.</li><li>Do not enter illegal, defamatory, or rights-infringing content.</li><li>Do not attempt to bypass the site’s security measures.</li></ul>'
+      },
+      {
+        heading: 'Data and termination',
+        body: '<p>Account data, templates and inventory are stored in the user account. The account can be deleted at any time by the user in the account management area, subject to the active deletion policy in Supabase.</p>'
+      },
+      {
+        heading: 'Intellectual property',
+        body: '<p>The site and its technical elements are the property of the editor. User-entered content remains the property of the user, subject to applicable rules on third-party rights and personal data protection.</p>'
+      },
+      {
+        heading: 'Liability',
+        body: '<p>The editor strives to provide a reliable service without guaranteeing the total absence of bugs or interruptions. The service is provided “as is”, and the user is responsible for the way they use it.</p>'
+      }
+    ]
+  }
+}
+
+function LegalPage({ page, onBack, onHome, onOpenLegalPage }) {
+  const content = legalContent[page] ?? legalContent.mentions
+
+  return (
+    <main className="legal-shell">
+      <header className="legal-header">
+        <div>
+          <p className="eyebrow">Adrafteo</p>
+          <h1>{content.title}</h1>
+        </div>
+        <button type="button" className="button button--ghost" onClick={onBack}>Back</button>
+      </header>
+
+      <article className="legal-page">
+        <p className="legal-page__intro">{content.intro}</p>
+        {content.blocks.map((block) => (
+          <section key={block.heading} className="legal-page__section">
+            <h2>{block.heading}</h2>
+            <div dangerouslySetInnerHTML={{ __html: block.body }} />
+          </section>
+        ))}
+      </article>
+
+      <Footer onOpenLegalPage={onOpenLegalPage} onHome={onHome} />
+    </main>
+  )
+}
+
+const faqItems = [
+  {
+    question: 'What is a reusable marketplace listing template?',
+    answer: 'It is a listing structure you can save once and reuse for multiple products. Add placeholders such as [Brand], [Size], or [Condition], then fill them in for each advert.',
+  },
+  {
+    question: 'Can I use one template on different marketplaces?',
+    answer: 'Yes. Adrafteo is designed for multi-platform selling, including Vinted, eBay, Depop, Facebook Marketplace, and other marketplaces.',
+  },
+  {
+    question: 'How do variables work?',
+    answer: 'Write variable names between square brackets in your title or description. When you generate an advert, Adrafteo asks for the values and replaces the placeholders in your copy.',
+  },
+  {
+    question: 'Are my templates private?',
+    answer: 'Yes. Templates, inventory, and reusable variables are linked to your account and protected by Supabase access policies.',
+  },
+  {
+    question: 'Does Adrafteo use AI to generate adverts?',
+    answer: 'No. Standard advert generation happens in your browser by replacing the variables in your saved template. Your original template stays under your control.',
+  },
+]
+
+function FaqPage({ onBack, onOpenLegalPage }) {
+  return (
+    <main className="legal-shell">
+      <header className="legal-header">
+        <div>
+          <p className="eyebrow">Adrafteo</p>
+          <h1>Frequently asked questions</h1>
+        </div>
+        <button type="button" className="button button--ghost" onClick={onBack}>Back</button>
+      </header>
+
+      <article className="legal-page faq-page">
+        <p className="legal-page__intro">Clear answers about reusable listing templates, variables, privacy, and advert generation.</p>
+        <div className="faq-list">
+          {faqItems.map((item) => (
+            <details key={item.question}>
+              <summary>{item.question}</summary>
+              <p>{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </article>
+
+      <Footer onOpenLegalPage={onOpenLegalPage} />
+    </main>
+  )
+}
+
+function LandingPage({ onOpenLegalPage, onOpenFaq }) {
   const [showAuth, setShowAuth] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
 
@@ -381,6 +554,9 @@ function LandingPage() {
           <span>Adrafteo</span>
         </a>
         <div className="landing-nav__actions">
+          <button type="button" className="button button--ghost" onClick={onOpenFaq}>
+            FAQ
+          </button>
           <button type="button" className="button button--ghost" onClick={() => setShowFeedback(true)}>
             Give a Feedback!
           </button>
@@ -489,6 +665,7 @@ function LandingPage() {
         <button type="button" className="button button--primary button--large" onClick={() => setShowAuth(true)}>Create your free workspace <span aria-hidden="true">→</span></button>
       </section>
       {showFeedback ? <FeedbackPanel onClose={() => setShowFeedback(false)} /> : null}
+      <Footer onOpenLegalPage={onOpenLegalPage} />
       </main>
     </>
   )
@@ -1122,6 +1299,8 @@ function App() {
   const [lotEditor, setLotEditor] = useState(null)
   const [showAccountPanel, setShowAccountPanel] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
+  const [activeLegalPage, setActiveLegalPage] = useState(null)
+  const [showFaqPage, setShowFaqPage] = useState(false)
   const [showCrossVariables, setShowCrossVariables] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -1441,8 +1620,23 @@ function App() {
     return <main className="auth-shell"><p>Loading your workspace...</p></main>
   }
 
+  if (activeLegalPage) {
+    return (
+      <LegalPage
+        page={activeLegalPage}
+        onBack={() => setActiveLegalPage(null)}
+        onHome={() => setActiveLegalPage(null)}
+        onOpenLegalPage={setActiveLegalPage}
+      />
+    )
+  }
+
+  if (showFaqPage) {
+    return <FaqPage onBack={() => setShowFaqPage(false)} onOpenLegalPage={setActiveLegalPage} />
+  }
+
   if (!session) {
-    return <LandingPage />
+    return <LandingPage onOpenLegalPage={setActiveLegalPage} onOpenFaq={() => setShowFaqPage(true)} />
   }
 
   const templateCount = templates.length
@@ -1461,6 +1655,9 @@ function App() {
         <div className="topbar__actions">
           <button type="button" className="button button--ghost" onClick={() => setShowCrossVariables(true)}>
             Cross variables
+          </button>
+          <button type="button" className="button button--ghost" onClick={() => setShowFaqPage(true)}>
+            FAQ
           </button>
           <button type="button" className="button button--ghost" onClick={() => setShowFeedback(true)}>
             Give a Feedback!
@@ -1582,6 +1779,7 @@ function App() {
       ) : null}
 
       {showFeedback ? <FeedbackPanel onClose={() => setShowFeedback(false)} /> : null}
+      <Footer onOpenLegalPage={setActiveLegalPage} />
     </div>
   )
 }
