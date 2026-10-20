@@ -414,11 +414,12 @@ function FeedbackPanel({ onClose }) {
   )
 }
 
-function Footer({ onOpenLegalPage, onHome }) {
+function Footer({ onOpenLegalPage, onHome, onOpenPricing }) {
   return (
     <footer className="site-footer">
       <div className="site-footer__nav">
         {onHome ? <button type="button" className="button button--text" onClick={onHome}>Home</button> : null}
+        {onOpenPricing ? <button type="button" className="button button--text" onClick={onOpenPricing}>Pricing</button> : null}
         <button type="button" className="button button--text" onClick={() => onOpenLegalPage('mentions')}>Legal notice</button>
         <button type="button" className="button button--text" onClick={() => onOpenLegalPage('confidentialite')}>Privacy policy</button>
         <button type="button" className="button button--text" onClick={() => onOpenLegalPage('cgu')}>Terms</button>
@@ -505,7 +506,7 @@ const legalContent = {
   }
 }
 
-function LegalPage({ page, onBack, onHome, onOpenLegalPage }) {
+function LegalPage({ page, onBack, onHome, onOpenLegalPage, onOpenPricing }) {
   const content = legalContent[page] ?? legalContent.mentions
 
   return (
@@ -528,7 +529,7 @@ function LegalPage({ page, onBack, onHome, onOpenLegalPage }) {
         ))}
       </article>
 
-      <Footer onOpenLegalPage={onOpenLegalPage} onHome={onHome} />
+      <Footer onOpenLegalPage={onOpenLegalPage} onHome={onHome} onOpenPricing={onOpenPricing} />
     </main>
   )
 }
@@ -556,11 +557,14 @@ const faqItems = [
   },
 ]
 
-function FaqPage({ onBack, onOpenLegalPage }) {
+function FaqPage({ onBack, onOpenLegalPage, onOpenPricing }) {
   return (
     <main className="legal-shell">
       <header className="legal-header">
         <div>
+          <button type="button" className="button button--ghost faq-pricing-button" onClick={onOpenPricing}>
+            Pricing
+          </button>
           <p className="eyebrow">Adrafteo</p>
           <h1>Frequently asked questions</h1>
         </div>
@@ -584,7 +588,66 @@ function FaqPage({ onBack, onOpenLegalPage }) {
   )
 }
 
-function LandingPage({ onOpenLegalPage, onOpenFaq }) {
+const pricingFeatures = [
+  'Reusable marketplace listing templates',
+  'Dynamic variables for titles and descriptions',
+  'Client-side advert generation',
+  'Copy ready-to-post listing text',
+  'Multi-marketplace workflows',
+  'Personal templates protected by your account',
+  'Inventory item tracking',
+  'Inventory lots and item grouping',
+  'Purchase, target sale, and realised sale values',
+  'Profit and ROI calculations',
+  'Multiple marketplace platforms per item',
+  'Shipments and inbound cost allocation',
+  'Reusable cross variables',
+  'Feedback and account management',
+]
+
+function PricingPage({ onBack, onOpenLegalPage, onOpenPricing }) {
+  return (
+    <main className="legal-shell">
+      <header className="legal-header">
+        <div>
+          <p className="eyebrow">Adrafteo</p>
+          <h1>Simple pricing.</h1>
+        </div>
+        <button type="button" className="button button--ghost" onClick={onBack}>Back</button>
+      </header>
+
+      <article className="legal-page pricing-page">
+        <p className="legal-page__intro">Everything available in Adrafteo is included in the Free plan during the beta.</p>
+        <div className="pricing-table-wrap">
+          <table className="pricing-table">
+            <thead>
+              <tr>
+                <th scope="col">Features</th>
+                <th scope="col">
+                  <span className="pricing-plan-name">Free</span>
+                  <small>During beta</small>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {pricingFeatures.map((feature) => (
+                <tr key={feature}>
+                  <th scope="row">{feature}</th>
+                  <td aria-label={`${feature}: included`}><span className="pricing-check" aria-hidden="true">✓</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="pricing-note">No payment is required while Adrafteo is in beta. Future plans will be communicated before any change to access or pricing.</p>
+      </article>
+
+      <Footer onOpenLegalPage={onOpenLegalPage} onOpenPricing={onOpenPricing} />
+    </main>
+  )
+}
+
+function LandingPage({ onOpenLegalPage, onOpenFaq, onOpenPricing, onBackWorkspace }) {
   const [showAuth, setShowAuth] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
 
@@ -602,6 +665,14 @@ function LandingPage({ onOpenLegalPage, onOpenFaq }) {
           <span>Adrafteo</span>
         </a>
         <div className="landing-nav__actions">
+          {onBackWorkspace ? (
+            <button type="button" className="button button--ghost" onClick={onBackWorkspace}>
+              Workspace
+            </button>
+          ) : null}
+          <button type="button" className="button button--ghost" onClick={onOpenPricing}>
+            Pricing
+          </button>
           <button type="button" className="button button--ghost" onClick={onOpenFaq}>
             FAQ
           </button>
@@ -727,27 +798,25 @@ function TemplateCard({ template, onEdit, onGenerate, onDuplicate, onDelete }) {
       <div className="template-card__header">
         <div>
           <h3>{template.name}</h3>
-          <p>{variables.length} variable{variables.length === 1 ? '' : 's'} detected</p>
+          <p>{variables.length} variable{variables.length === 1 ? '' : 's'} detected · Updated {formatDate(template.updated_at || template.created_at)}</p>
         </div>
-        <span className="template-card__badge">Template</span>
+        <div className="template-card__quick-actions">
+          <button type="button" className="icon-button" onClick={() => onDelete(template.id)} aria-label={`Delete ${template.name}`}>×</button>
+        </div>
       </div>
 
       <pre className="template-card__preview">{template.title ? `${template.title}\n\n` : ''}{template.content}</pre>
 
       <div className="template-card__footer">
-        <small>Updated {formatDate(template.updated_at || template.created_at)}</small>
         <div className="template-card__actions">
           <button type="button" className="button button--ghost" onClick={() => onEdit(template)}>
-            Edit
-          </button>
-          <button type="button" className="button button--primary" onClick={() => onGenerate(template)}>
-            Generate
+            Edit template
           </button>
           <button type="button" className="button button--ghost" onClick={() => onDuplicate(template)}>
             Duplicate
           </button>
-          <button type="button" className="button button--danger" onClick={() => onDelete(template.id)}>
-            Delete
+          <button type="button" className="button button--primary" onClick={() => onGenerate(template)}>
+            Generate
           </button>
         </div>
       </div>
@@ -881,7 +950,77 @@ function CrossVariablesPanel({ variables, onSave, onClose }) {
     })))
   }
 
-  return <Modal title="Cross variables" subtitle="Set reusable default values for variables used across your templates." onClose={onClose} wide><form className="form" onSubmit={handleSave}><div className="helper-box"><strong>How it works</strong><p>For example, save <code>[Ton secteur / Ta gare]</code> with the value <code>Paris</code>. Every template using that exact variable will start with Paris when you click Generate. You can still edit the value for a specific advert.</p></div><div className="cross-variable-list">{rows.map((row, index) => <div className="cross-variable-row" key={row.id ?? index}><label><span>Variable</span><input value={row.variable_name} onChange={(event) => updateRow(index, 'variable_name', event.target.value)} placeholder="Ton secteur / Ta gare" /></label><label><span>Default value</span><textarea value={row.default_value} onChange={(event) => updateRow(index, 'default_value', event.target.value)} placeholder="Paris" rows={3} /></label><button type="button" className="button button--danger" onClick={() => setRows((current) => current.filter((_, rowIndex) => rowIndex !== index))}>Remove</button></div>)}</div><button type="button" className="button button--ghost" onClick={() => setRows((current) => [...current, { variable_name: '', default_value: '' }])}>+ Add cross variable</button><div className="form__actions"><button type="button" className="button button--ghost" onClick={onClose}>Cancel</button><button type="submit" className="button button--primary">Save cross variables</button></div></form></Modal>
+  return (
+    <Modal
+      title="Cross variables"
+      subtitle="Set reusable default values for variables used across your templates."
+      onClose={onClose}
+      wide
+    >
+      <form className="form cross-variables-form" onSubmit={handleSave}>
+        <div className="helper-box cross-variables-intro">
+          <div>
+            <strong>One value, reused everywhere</strong>
+            <p>Save a default once and Adrafteo will prefill it whenever the same variable appears in a template. You can still adjust the value for a specific advert.</p>
+          </div>
+          <span className="cross-variables-count">{rows.length} {rows.length === 1 ? 'variable' : 'variables'}</span>
+        </div>
+
+        {rows.length > 0 ? (
+          <div className="cross-variable-list">
+            {rows.map((row, index) => (
+              <div className="cross-variable-row" key={row.id ?? index}>
+                <span className="cross-variable-row__number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                <label>
+                  <span>Variable name</span>
+                  <input
+                    value={row.variable_name}
+                    onChange={(event) => updateRow(index, 'variable_name', event.target.value)}
+                    placeholder="Ton secteur / Ta gare"
+                  />
+                  <small>Use the name inside square brackets in your templates.</small>
+                </label>
+                <label>
+                  <span>Default value</span>
+                  <textarea
+                    value={row.default_value}
+                    onChange={(event) => updateRow(index, 'default_value', event.target.value)}
+                    placeholder="Paris"
+                    rows={3}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="button button--danger"
+                  onClick={() => setRows((current) => current.filter((_, rowIndex) => rowIndex !== index))}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="cross-variable-empty">
+            <strong>No cross variables yet</strong>
+            <p>Add a reusable value for information such as your location, shipping method, or seller details.</p>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className="button button--ghost cross-variables-add"
+          onClick={() => setRows((current) => [...current, { variable_name: '', default_value: '' }])}
+        >
+          + Add cross variable
+        </button>
+
+        <div className="form__actions">
+          <button type="button" className="button button--ghost" onClick={onClose}>Cancel</button>
+          <button type="submit" className="button button--primary">Save cross variables</button>
+        </div>
+      </form>
+    </Modal>
+  )
 }
 
 function GeneratorPanel({ template, initialValues = {}, crossVariables = {}, onClose }) {
@@ -1320,17 +1459,15 @@ function InventoryLotRow({ lot, items, templates, matches, onDelete, onEdit, onD
         </div>
         <div className="lot-items-list">
           {items.filter(matches).map((item) => {
-            const profit = getItemProfit(item)
             const roi = getItemRoi(item)
             const itemTemplate = templates.find((template) => template.id === item.template_id)
             return <article className="inventory-tree__row inventory-tree__row--item" key={item.id}>
             <span className="inventory-tree__name"><strong>{item.name}</strong><small>{item.item_type || 'Uncategorised'} · {item.condition || 'Condition not set'}</small></span>
+            <span className={`status-badge status-badge--${item.status}`}>{item.status.replace('_', ' ')}</span>
             <span>{formatMoney(item.purchase_price)} purchase</span>
             <span>{item.target_sale_price === null ? '—' : formatMoney(item.target_sale_price)} target</span>
-            <span className="status-badge status-badge--compact">{item.status.replace('_', ' ')}</span>
-            <span className="inventory-pill">{item.status === 'sold' ? 'Sold' : 'Not sold'}</span>
+            <span>{item.sale_price === null ? '—' : formatMoney(item.sale_price)} sold</span>
             <span className={roi !== null && roi < 0 ? 'value-negative' : 'value-positive'}>ROI {roi === null ? '—' : `${roi.toFixed(1)}%`}</span>
-            <span className={profit !== null && profit < 0 ? 'value-negative' : 'value-positive'}>{profit === null ? '—' : formatMoney(profit)}</span>
             <span className="table-actions">{itemTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerate(item, itemTemplate)}>Generate</button> : null}<button type="button" className="button button--ghost" onClick={() => onEdit(item)}>Edit</button><button type="button" className="button button--ghost" onClick={() => onDuplicate(item)}>Duplicate</button></span>
           </article>
           })}
@@ -1420,6 +1557,141 @@ function ShipmentItemRow({ item, selected, alreadyAllocated, allocation, manualC
   return <div className="shipment-item-row"><div><strong>{item.name}</strong><small>{getItemQuantity(item)} units · {formatMoney(getItemUnitValue(item))} per unit {alreadyAllocated ? '· Already in a shipment' : ''}</small></div><input type="number" min="0" max={getItemQuantity(item)} step="1" value={selected} onChange={(event) => onQuantity(event.target.value)} aria-label={`Quantity of ${item.name}`} />{alreadyAllocated ? <span className="inventory-pill">Already assigned</span> : null}<span>{manualCost !== '' ? formatMoney(manualCost) : formatMoney(allocation)}</span>{allocation !== 0 ? <input className="shipment-manual-cost" type="number" min="0" step="0.01" value={manualCost} onChange={(event) => onManualCost(event.target.value)} placeholder="Manual cost" aria-label={`Allocated cost for ${item.name}`} /> : null}</div>
 }
 
+function ComparisonBarChart({ invested, recovered, potential }) {
+  const futureRevenue = recovered + potential
+  const maximum = Math.max(invested, futureRevenue, 1)
+  const recoveredWidth = (recovered / maximum) * 100
+  const potentialWidth = (potential / maximum) * 100
+  return (
+    <div className="comparison-chart" role="img" aria-label={`Money spent ${formatMoney(invested)}, realised revenue ${formatMoney(recovered)}, and potential resale value ${formatMoney(potential)}`}>
+      <div className="comparison-chart__row">
+        <div className="comparison-chart__label"><span>Money spent</span><strong>{formatMoney(invested)}</strong></div>
+        <div className="comparison-chart__track"><i className="comparison-chart__segment comparison-chart__segment--spent" style={{ width: `${(invested / maximum) * 100}%` }} /></div>
+      </div>
+      <div className="comparison-chart__row">
+        <div className="comparison-chart__label">
+          <span>Revenue realised + resale potential</span>
+          <strong>{formatMoney(futureRevenue)}</strong>
+        </div>
+        <div className="comparison-chart__track comparison-chart__track--stacked">
+          <i className="comparison-chart__segment comparison-chart__segment--recovered" style={{ width: `${recoveredWidth}%` }} />
+          <i className="comparison-chart__segment comparison-chart__segment--potential" style={{ width: `${potentialWidth}%` }} />
+        </div>
+        <div className="comparison-chart__legend">
+          <span><i className="comparison-chart__legend-swatch comparison-chart__legend-swatch--recovered" />Realised {formatMoney(recovered)}</span>
+          <span><i className="comparison-chart__legend-swatch comparison-chart__legend-swatch--potential" />Potential {formatMoney(potential)}</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OverviewPage({ items, templates, onOpenTemplates, onOpenInventory }) {
+  const soldItems = items.filter((item) => item.status === 'sold')
+  const stockItems = items.filter((item) => item.status !== 'sold' && item.status !== 'in_transit')
+  const investedValue = items.reduce((total, item) => total + Number(item.purchase_price || 0), 0)
+  const stockValue = stockItems.reduce((total, item) => total + Number(item.target_sale_price || 0), 0)
+  const realisedSales = soldItems.reduce((total, item) => total + Number(item.sale_price || 0), 0)
+  const realisedProfit = soldItems.reduce((total, item) => total + (getItemProfit(item) || 0), 0)
+  const soldCost = soldItems.reduce((total, item) => total + Number(item.purchase_price || 0), 0)
+  const roi = soldCost > 0 ? (realisedProfit / soldCost) * 100 : null
+  const platforms = Array.from(new Set(items.flatMap((item) => getItemPlatforms(item))))
+  const platformStats = platforms.map((platform) => {
+      const platformItems = items.filter((item) => getItemPlatforms(item).includes(platform))
+      const platformSold = platformItems.filter((item) => item.status === 'sold')
+      return {
+        platform,
+        count: platformItems.length,
+        sold: platformSold.length,
+        sales: platformSold.reduce((total, item) => total + Number(item.sale_price || 0), 0),
+      }
+    })
+  const statusStats = [
+    { label: 'In stock', status: 'in_stock', color: '#6a994e' },
+    { label: 'To list', status: 'to_list', color: '#ffcb47' },
+    { label: 'Listed', status: 'listed', color: '#333745' },
+    { label: 'In transit', status: 'in_transit', color: '#9b6b9e' },
+    { label: 'Sold', status: 'sold', color: '#b0413e' },
+  ].map((entry) => ({ ...entry, value: items.filter((item) => item.status === entry.status).length }))
+  const statusMax = Math.max(...statusStats.map((entry) => entry.value), 1)
+  const recentItems = [...items]
+    .filter((item) => item.status === 'sold')
+    .sort((a, b) => new Date(b.sale_date || b.updated_at || b.created_at).getTime() - new Date(a.sale_date || a.updated_at || a.created_at).getTime())
+    .slice(0, 5)
+
+  return (
+    <section className="overview-page">
+      <div className="overview-heading">
+        <div>
+          <p className="eyebrow">Workspace overview</p>
+          <h2>Seller performance and inventory overview</h2>
+          <p>One clear view of your stock, templates, and realised sales.</p>
+        </div>
+        <div className="overview-actions">
+          <button type="button" className="button button--ghost" onClick={onOpenTemplates}>Manage templates</button>
+          <button type="button" className="button button--primary" onClick={onOpenInventory}>Open inventory</button>
+        </div>
+      </div>
+
+      <div className="overview-metrics" aria-label="Workspace metrics">
+        <div><span>Templates</span><strong>{templates.length}</strong><small>Reusable blueprints</small></div>
+        <div><span>Items in stock</span><strong>{stockItems.length}</strong><small>{items.length} recorded overall</small></div>
+        <div><span>Stock potential</span><strong>{formatMoney(stockValue)}</strong><small>Target sale value</small></div>
+        <div><span>Realised sales</span><strong>{formatMoney(realisedSales)}</strong><small>{soldItems.length} sold items</small></div>
+        <div><span>Realised ROI</span><strong>{roi === null ? '—' : `${roi.toFixed(1)}%`}</strong><small>{formatMoney(realisedProfit)} profit</small></div>
+      </div>
+
+      <div className="overview-columns">
+        <section className="overview-section">
+          <div className="overview-section__heading"><div><p className="eyebrow">Sales channels</p><h3>Marketplace performance</h3></div><span>{formatMoney(realisedSales)} total sales</span></div>
+          {platformStats.length > 0 ? (
+            <div className="platform-performance">
+              {platformStats.map((entry) => (
+                <div className="platform-performance__row" key={entry.platform}>
+                  <strong>{entry.platform}</strong>
+                  <span>{entry.count} items · {entry.sold} sold</span>
+                  <b>{formatMoney(entry.sales)}</b>
+                </div>
+              ))}
+            </div>
+          ) : <p className="overview-empty">Add platforms to inventory items to see channel performance.</p>}
+        </section>
+
+        <section className="overview-section overview-section--workflow">
+          <div className="overview-section__heading"><div><p className="eyebrow">Listing workflow</p><h3>Keep the next action visible</h3></div></div>
+          <div className="workflow-list">
+            <button type="button" onClick={onOpenTemplates}><span><b>{templates.length}</b> templates ready to reuse</span><strong>Templates →</strong></button>
+            <button type="button" onClick={onOpenInventory}><span><b>{items.filter((item) => item.status === 'to_list').length}</b> items waiting to list</span><strong>Inventory →</strong></button>
+            <div><span><b>{formatMoney(investedValue)}</b> invested in recorded stock</span><small>Based on purchase prices</small></div>
+          </div>
+        </section>
+      </div>
+
+      <div className="overview-charts">
+        <section className="overview-section chart-section">
+          <div className="overview-section__heading"><div><p className="eyebrow">Cash flow</p><h3>Money spent vs recovered</h3></div></div>
+          <ComparisonBarChart invested={investedValue} recovered={realisedSales} potential={stockValue} />
+        </section>
+
+        <section className="overview-section chart-section">
+          <div className="overview-section__heading"><div><p className="eyebrow">Stock flow</p><h3>Inventory by status</h3></div><span>{items.length} items</span></div>
+          <div className="status-chart">{statusStats.map((entry) => <div className="status-chart__row" key={entry.status}><span>{entry.label}</span><div className="status-chart__track"><i style={{ width: `${(entry.value / statusMax) * 100}%`, background: entry.color }} /></div><strong>{entry.value}</strong></div>)}</div>
+        </section>
+      </div>
+
+      <section className="overview-section overview-section--activity">
+        <div className="overview-section__heading"><div><p className="eyebrow">Recent activity</p><h3>Latest completed sales</h3></div><button type="button" className="button button--ghost" onClick={onOpenInventory}>View inventory</button></div>
+        {recentItems.length > 0 ? (
+          <div className="activity-table">
+            <div className="activity-table__header"><span>Item</span><span>Sale date</span><span>Sale price</span><span>Profit</span><span>ROI</span></div>
+            {recentItems.map((item) => <div className="activity-table__row" key={item.id}><strong>{item.name}</strong><span>{item.sale_date || 'Date not set'}</span><span>{formatMoney(item.sale_price)}</span><b className={(getItemProfit(item) || 0) < 0 ? 'value-negative' : 'value-positive'}>{formatMoney(getItemProfit(item))}</b><span>{getItemRoi(item) === null ? '—' : `${getItemRoi(item).toFixed(1)}%`}</span></div>)}
+          </div>
+        ) : <p className="overview-empty">Completed sales will appear here once an inventory item is marked as sold.</p>}
+      </section>
+    </section>
+  )
+}
+
 function InventoryPage({ items, lots, templates, shipments, allocations, onCreate, onCreateLot, onCreateShipment, onEdit, onEditLot, onDelete, onDuplicate, onDeleteLot, onDeleteShipment, onGenerate, onGenerateLot }) {
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
@@ -1499,7 +1771,7 @@ function InventoryPage({ items, lots, templates, shipments, allocations, onCreat
       ? (sortDirection === 'asc' ? 'Lowest first' : 'Highest first')
       : (sortDirection === 'asc' ? 'A-Z' : 'Z-A')
   return (
-    <>
+    <section className="inventory-page">
       <div className="page-heading"><div><p className="eyebrow">Inventory</p><h2>Know what you own. Know what it earns.</h2><p className="topbar__subtitle">Track every item from purchase to sale, with your listing workflow close at hand.</p></div><div className="page-heading__actions"><button type="button" className="button button--ghost button--large" onClick={onCreateShipment}>+ Add shipment</button><button type="button" className="button button--ghost button--large" onClick={onCreateLot}>+ Add lot</button><button type="button" className="button button--primary button--large" onClick={onCreate}>+ Add item</button></div></div>
       <section className="stats-row stats-row--inventory">
         <div className="stat-card"><span>Items</span><strong>{items.length}</strong><small>{stockItems.length} in stock</small></div>
@@ -1510,8 +1782,8 @@ function InventoryPage({ items, lots, templates, shipments, allocations, onCreat
       </section>
       <section className="inventory-toolbar"><div className="inventory-filters" role="group" aria-label="Filter inventory"><button type="button" className={`filter-button ${filter === 'all' ? 'filter-button--active' : ''}`} onClick={() => setFilter('all')}>All <span>{items.length}</span></button><button type="button" className={`filter-button ${filter === 'in_transit' ? 'filter-button--active' : ''}`} onClick={() => setFilter('in_transit')}>In transit</button><button type="button" className={`filter-button ${filter === 'in_stock' ? 'filter-button--active' : ''}`} onClick={() => setFilter('in_stock')}>In stock</button><button type="button" className={`filter-button ${filter === 'to_list' ? 'filter-button--active' : ''}`} onClick={() => setFilter('to_list')}>To list</button><button type="button" className={`filter-button ${filter === 'listed' ? 'filter-button--active' : ''}`} onClick={() => setFilter('listed')}>Listed</button><button type="button" className={`filter-button ${filter === 'sold' ? 'filter-button--active' : ''}`} onClick={() => setFilter('sold')}>Sold</button></div><div className="inventory-toolbar__controls"><label><span>Sort by</span><select value={sortBy} onChange={(event) => setSortBy(event.target.value)}><option value="purchase_date">Purchase date</option><option value="purchase_price">Purchase price</option><option value="name">Name</option></select></label><button type="button" className="filter-button" onClick={() => setSortDirection((current) => current === 'asc' ? 'desc' : 'asc')} aria-label={`Sort ${sortDirection === 'asc' ? 'descending' : 'ascending'}`}>{sortDirectionLabel}</button><input className="inventory-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search inventory..." aria-label="Search inventory" /></div></section>
       {shipments.length > 0 ? <section className="shipment-history"><div className="section-label"><span>Shipments</span><small>{shipments.length} recorded</small></div>{shipments.map((shipment) => <article className="shipment-history__row" key={shipment.id}><div><strong>{shipment.name}</strong><small>{shipment.shipment_date} · {allocations.filter((allocation) => allocation.shipment_id === shipment.id).length} item lines</small></div><span>{formatMoney(getShipmentTotal(shipment))} allocated</span><button type="button" className="button button--danger" onClick={() => onDeleteShipment(shipment.id)}>Delete</button></article>)}</section> : null}
-      {visibleCount > 0 ? <section className="inventory-tree">{sortedEntries.map((entry) => entry.type === 'lot' ? (() => { const lotNameMatches = query.trim() && entry.lot.name.toLowerCase().includes(query.trim().toLowerCase()); return <InventoryLotRow key={entry.key} lot={entry.lot} items={entry.items} matches={(item) => lotNameMatches ? (filter === 'all' || item.status === filter) : matchesItem(item)} templates={templates} onDelete={onDeleteLot} onEdit={onEdit} onEditLot={onEditLot} onDuplicate={onDuplicate} onGenerate={onGenerate} onGenerateLot={onGenerateLot} /> })() : (() => { const item = entry.item; const profit = getItemProfit(item); const roi = getItemRoi(item); const linkedTemplate = templates.find((template) => template.id === item.template_id); return <article className="inventory-tree__row inventory-tree__row--standalone" key={entry.key}><span className="inventory-tree__name"><strong>{item.name}</strong><small>{item.item_type || 'Uncategorised'} · {item.condition || 'Condition not set'}</small></span><span className={`status-badge status-badge--${item.status}`}>{item.status.replace('_', ' ')}</span><span>{formatMoney(item.purchase_price)} purchase</span><span>{item.target_sale_price === null ? '—' : formatMoney(item.target_sale_price)} target</span><span className={roi !== null && roi < 0 ? 'value-negative' : 'value-positive'}>ROI {roi === null ? '—' : `${roi.toFixed(1)}%`}</span><span className="table-actions">{linkedTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerate(item, linkedTemplate)}>Generate</button> : null}<button type="button" className="button button--ghost" onClick={() => onEdit(item)}>Edit</button><button type="button" className="button button--ghost" onClick={() => onDuplicate(item)}>Duplicate</button><button type="button" className="button button--danger" onClick={() => onDelete(item.id)}>Delete</button></span></article> })())}</section> : <section className="empty-state"><h2>{items.length === 0 ? 'Your inventory is empty' : 'No items match this view'}</h2><p>{items.length === 0 ? 'Add your first item to start tracking stock and profitability.' : 'Try another filter or search term.'}</p>{items.length === 0 ? <button type="button" className="button button--primary" onClick={onCreate}>Add your first item</button> : null}</section>}
-    </>
+      {visibleCount > 0 ? <section className="inventory-tree">{sortedEntries.map((entry) => entry.type === 'lot' ? (() => { const lotNameMatches = query.trim() && entry.lot.name.toLowerCase().includes(query.trim().toLowerCase()); return <InventoryLotRow key={entry.key} lot={entry.lot} items={entry.items} matches={(item) => lotNameMatches ? (filter === 'all' || item.status === filter) : matchesItem(item)} templates={templates} onDelete={onDeleteLot} onEdit={onEdit} onEditLot={onEditLot} onDuplicate={onDuplicate} onGenerate={onGenerate} onGenerateLot={onGenerateLot} /> })() : (() => { const item = entry.item; const roi = getItemRoi(item); const linkedTemplate = templates.find((template) => template.id === item.template_id); return <article className="inventory-tree__row inventory-tree__row--standalone" key={entry.key}><span className="inventory-tree__name"><strong>{item.name}</strong><small>{item.item_type || 'Uncategorised'} · {item.condition || 'Condition not set'}</small></span><span className={`status-badge status-badge--${item.status}`}>{item.status.replace('_', ' ')}</span><span>{formatMoney(item.purchase_price)} purchase</span><span>{item.target_sale_price === null ? '—' : formatMoney(item.target_sale_price)} target</span><span>{item.sale_price === null ? '—' : formatMoney(item.sale_price)} sold</span><span className={roi !== null && roi < 0 ? 'value-negative' : 'value-positive'}>ROI {roi === null ? '—' : `${roi.toFixed(1)}%`}</span><span className="table-actions">{linkedTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerate(item, linkedTemplate)}>Generate</button> : null}<button type="button" className="button button--ghost" onClick={() => onEdit(item)}>Edit</button><button type="button" className="button button--ghost" onClick={() => onDuplicate(item)}>Duplicate</button><button type="button" className="button button--danger" onClick={() => onDelete(item.id)}>Delete</button></span></article> })())}</section> : <section className="empty-state"><h2>{items.length === 0 ? 'Your inventory is empty' : 'No items match your view'}</h2><p>{items.length === 0 ? 'Add your first item to start tracking stock and profitability.' : 'Try another filter or search term.'}</p>{items.length === 0 ? <button type="button" className="button button--primary" onClick={onCreate}>Add your first item</button> : null}</section>}
+    </section>
   )
 }
 
@@ -1523,7 +1795,9 @@ function App() {
   const [inventoryLots, setInventoryLots] = useState([])
   const [inventoryShipments, setInventoryShipments] = useState([])
   const [shipmentAllocations, setShipmentAllocations] = useState([])
-  const [activeView, setActiveView] = useState('templates')
+  const [activeView, setActiveView] = useState('overview')
+  const [showLanding, setShowLanding] = useState(false)
+  const [templateQuery, setTemplateQuery] = useState('')
   const [editorTemplate, setEditorTemplate] = useState(null)
   const [generatorTemplate, setGeneratorTemplate] = useState(null)
   const [inventoryEditor, setInventoryEditor] = useState(null)
@@ -1533,6 +1807,7 @@ function App() {
   const [showFeedback, setShowFeedback] = useState(false)
   const [activeLegalPage, setActiveLegalPage] = useState(null)
   const [showFaqPage, setShowFaqPage] = useState(false)
+  const [showPricingPage, setShowPricingPage] = useState(false)
   const [showCrossVariables, setShowCrossVariables] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -1993,29 +2268,60 @@ function App() {
         onBack={() => setActiveLegalPage(null)}
         onHome={() => setActiveLegalPage(null)}
         onOpenLegalPage={setActiveLegalPage}
+        onOpenPricing={() => { setActiveLegalPage(null); setShowFaqPage(false); setShowPricingPage(true) }}
       />
     )
   }
 
   if (showFaqPage) {
-    return <FaqPage onBack={() => setShowFaqPage(false)} onOpenLegalPage={setActiveLegalPage} />
+    return <FaqPage onBack={() => setShowFaqPage(false)} onOpenLegalPage={setActiveLegalPage} onOpenPricing={() => { setActiveLegalPage(null); setShowFaqPage(false); setShowPricingPage(true) }} />
+  }
+
+  if (showPricingPage) {
+    return (
+      <PricingPage
+        onBack={() => setShowPricingPage(false)}
+        onOpenLegalPage={setActiveLegalPage}
+        onOpenPricing={() => { setActiveLegalPage(null); setShowFaqPage(false); setShowPricingPage(true) }}
+      />
+    )
   }
 
   if (!session) {
-    return <LandingPage onOpenLegalPage={setActiveLegalPage} onOpenFaq={() => setShowFaqPage(true)} />
+    return <LandingPage onOpenLegalPage={setActiveLegalPage} onOpenFaq={() => setShowFaqPage(true)} onOpenPricing={() => { setActiveLegalPage(null); setShowFaqPage(false); setShowPricingPage(true) }} />
+  }
+
+  if (showLanding) {
+    return (
+      <LandingPage
+        onOpenLegalPage={setActiveLegalPage}
+        onOpenFaq={() => setShowFaqPage(true)}
+        onOpenPricing={() => { setActiveLegalPage(null); setShowFaqPage(false); setShowPricingPage(true) }}
+        onBackWorkspace={() => setShowLanding(false)}
+      />
+    )
   }
 
   const templateCount = templates.length
+  const visibleTemplates = templates.filter((template) => {
+    const query = templateQuery.trim().toLowerCase()
+    return !query || `${template.name} ${template.title ?? ''} ${template.content}`.toLowerCase().includes(query)
+  })
   const crossVariableValues = Object.fromEntries(crossVariables.map((variable) => [variableKey(variable.variable_name), variable.default_value]))
 
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">Adrafteo</p>
-          <h1>Build Vinted and eBay adverts faster.</h1>
+        <div className="topbar__brand">
+          <span className="brand-mark" aria-hidden="true">▣</span>
+          <strong>adrafteo</strong>
+          <span className="brand-dot" aria-hidden="true">●</span>
+        </div>
+        <div className="topbar__identity">
+          <p className="eyebrow">Workspace listing architecture</p>
+          <h1>{activeView === 'templates' ? 'Structured Listing Templates' : activeView === 'inventory' ? 'Inventory Registry' : 'Seller Performance Overview'}</h1>
           <p className="topbar__subtitle">
-            Save reusable templates, fill variables, and copy ready-to-post listings in seconds.
+            {activeView === 'templates' ? 'Centralize your marketplace formats, dynamic SEO variables, and reusable copy.' : activeView === 'inventory' ? 'Track every item from purchase to sale, with your listing workflow close at hand.' : 'A practical summary of your current stock, sales, and listing workflow.'}
           </p>
         </div>
         <div className="topbar__actions">
@@ -2034,20 +2340,40 @@ function App() {
           <button type="button" className="button button--ghost" onClick={() => setShowAccountPanel(true)}>
             Account
           </button>
-          <button type="button" className="button button--primary button--large" onClick={() => activeView === 'inventory' ? setInventoryEditor({}) : (setGeneratorTemplate(null), setEditorDirty(false), setEditorTemplate({ name: '', title: '', content: '' }))}>
-            {activeView === 'inventory' ? '+ Add item' : '+ Create template'}
-          </button>
+          {activeView === 'inventory' ? (
+            <button type="button" className="button button--primary button--large" onClick={() => setInventoryEditor({})}>
+              + Add item
+            </button>
+          ) : null}
         </div>
       </header>
 
       <main className="content">
         {error ? <p className="error-message">{error}</p> : null}
         <nav className="workspace-nav" aria-label="Workspace sections">
+          <button type="button" className="workspace-nav__link" onClick={() => setShowLanding(true)}>Landing</button>
+          <button type="button" className={activeView === 'overview' ? 'workspace-nav__link workspace-nav__link--active' : 'workspace-nav__link'} onClick={() => setActiveView('overview')}>Overview</button>
           <button type="button" className={activeView === 'templates' ? 'workspace-nav__link workspace-nav__link--active' : 'workspace-nav__link'} onClick={() => setActiveView('templates')}>Templates</button>
           <button type="button" className={activeView === 'inventory' ? 'workspace-nav__link workspace-nav__link--active' : 'workspace-nav__link'} onClick={() => setActiveView('inventory')}>Inventory</button>
+          <span className="workspace-nav__spacer" />
+          <span className="workspace-nav__user">{session.user.email}</span>
         </nav>
 
-        {activeView === 'templates' ? <>
+        {activeView === 'overview' ? (
+          <OverviewPage
+            items={inventoryItems}
+            templates={templates}
+            onOpenTemplates={() => setActiveView('templates')}
+            onOpenInventory={() => setActiveView('inventory')}
+          />
+        ) : activeView === 'templates' ? <>
+        <section className="templates-heading">
+          <div>
+            <h2>Your templates</h2>
+            <p>Reusable listing blueprints for every marketplace workflow.</p>
+          </div>
+          <input className="template-search" value={templateQuery} onChange={(event) => setTemplateQuery(event.target.value)} placeholder="Search templates, tags, keywords..." aria-label="Search templates" />
+        </section>
         <section className="stats-row">
           <div className="stat-card">
             <span>Templates</span>
@@ -2061,11 +2387,18 @@ function App() {
             <span>Storage</span>
             <strong>Cloud synced</strong>
           </div>
+          <button type="button" className="button button--primary template-create-button" onClick={() => {
+            setGeneratorTemplate(null)
+            setEditorDirty(false)
+            setEditorTemplate({ name: '', title: '', content: '' })
+          }}>
+            + Create template
+          </button>
         </section>
 
         {templateCount > 0 ? (
           <section className="grid">
-            {templates.map((template) => (
+            {visibleTemplates.map((template) => (
               <TemplateCard
                 key={template.id}
                 template={template}
@@ -2084,19 +2417,25 @@ function App() {
           </section>
         ) : (
           <section className="empty-state">
-            <h2>No templates yet</h2>
-            <p>Create your first advert template and reuse it for every listing.</p>
-            <button
-              type="button"
-              className="button button--primary"
-              onClick={() => {
-                setGeneratorTemplate(null)
-                setEditorDirty(false)
-                setEditorTemplate({ name: '', title: '', content: '' })
-              }}
-            >
-              Create your first template
-            </button>
+            <h2>{templateCount === 0 ? 'No templates yet' : 'No templates match your search'}</h2>
+            <p>{templateCount === 0 ? 'Create your first advert template and reuse it for every listing.' : 'Try another keyword or clear the search field.'}</p>
+            {templateCount === 0 ? (
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={() => {
+                  setGeneratorTemplate(null)
+                  setEditorDirty(false)
+                  setEditorTemplate({ name: '', title: '', content: '' })
+                }}
+              >
+                Create your first template
+              </button>
+            ) : (
+              <button type="button" className="button button--ghost" onClick={() => setTemplateQuery('')}>
+                Clear search
+              </button>
+            )}
           </section>
         )}
         </> : <InventoryPage items={inventoryItems} lots={inventoryLots} templates={templates} shipments={inventoryShipments} allocations={shipmentAllocations} onCreate={() => setInventoryEditor({})} onCreateLot={() => setLotEditor({})} onCreateShipment={() => setShipmentEditor(true)} onEdit={setInventoryEditor} onEditLot={setLotEditor} onDelete={handleDeleteInventoryItem} onDuplicate={handleDuplicateInventoryItem} onDeleteLot={handleDeleteInventoryLot} onDeleteShipment={handleDeleteShipment} onGenerate={(item, template) => { setInventoryEditor(null); setGeneratorTemplate({ template, initialValues: getGeneratorValues(item, extractVariables(`${template.title ?? ''}\n${template.content}`)) }) }} onGenerateLot={handleGenerateLot} />}
@@ -2151,7 +2490,7 @@ function App() {
       ) : null}
 
       {showFeedback ? <FeedbackPanel onClose={() => setShowFeedback(false)} /> : null}
-      <Footer onOpenLegalPage={setActiveLegalPage} />
+      <Footer onOpenLegalPage={setActiveLegalPage} onOpenPricing={() => { setActiveLegalPage(null); setShowFaqPage(false); setShowPricingPage(true) }} />
     </div>
   )
 }
