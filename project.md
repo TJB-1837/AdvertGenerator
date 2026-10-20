@@ -58,6 +58,14 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Inventory dashboard with stock, purchase value, target sale value, realised sales, and realised ROI
 - Inventory items can launch their linked template in the advert generator, with obvious item values prefilled when variable names match
 - Inventory lots can group multiple detailed items under one expandable summary row; standalone items remain supported
+- Inventory now uses one compact folder-style list for standalone items and expandable lots, with lot/item sold-count and ROI pills that preserve item-based dashboard counts
+- Inventory lots and standalone items share one sortable stream and can be ordered by purchase date, purchase price, or name in ascending or descending order
+- Inventory items and lot sub-items support an `In transit` status; transit items remain visible and filterable but are excluded from the in-stock dashboard count
+- Lot creation automatically distributes the lot purchase and target sale prices across its sub-items, while preserving manual per-item overrides
+- Inventory items support physical quantities, base purchase prices, and separate inbound costs; existing items are migrated to quantity 1
+- Shipments can allocate store-to-forwarder delivery, forwarder-to-home delivery, monthly subscription, VAT, and additional fees across selected physical units using value-based, equal, or manual allocation
+- Shipment VAT supports not applicable, manual, and automatic rate-based modes, with an option to exclude VAT from item cost
+- Shipment allocations are stored separately, flag previously assigned items, update item and lot effective costs, and can be deleted to reverse their allocations
 - Lot creation supports common purchase date, status, type, condition, and platform values that can be applied to all sub-items before saving
 - Templates, standalone inventory items, and lot sub-items can be duplicated into editable copies
 - Lots have their own template, purchase/sale pricing, and a single lot-level advert generation action; common lot variables can prefill item-list content
@@ -73,6 +81,7 @@ Run these files in the Supabase SQL Editor:
 - `supabase/delete_my_account.sql`: creates the authenticated account deletion RPC.
 - `supabase/feedback.sql`: creates the feedback table with insert-only RLS policies.
 - `supabase/inventory.sql`: creates the user-owned inventory and inventory-lot tables, RLS policies, indexes, item relationships, and the optional template relationship.
+- `supabase/inventory.sql`: also adds the quantity/cost migration and shipment/allocation tables; re-run it in Supabase before using shipment features.
 - `supabase/cross_variables.sql`: creates reusable user-owned default values for variables shared across templates, with RLS policies.
 
 The `templates` table must already exist with at least:
@@ -133,6 +142,8 @@ Configure the two `VITE_SUPABASE_*` variables in Vercel for Production, Preview,
 - No image upload or image hosting.
 - Inventory SQL must be run manually in Supabase before the Inventory page can load or save items. Re-run the file for existing inventory installations to add the multi-platform column and migrate the legacy platform value.
 - Lot support requires re-running `supabase/inventory.sql` after the existing inventory migration so the `inventory_lots` table and `lot_id` relationship are created.
+- Shipment support requires re-running `supabase/inventory.sql` so quantity, inbound-cost, shipment, and shipment-allocation columns/tables and RLS policies exist.
+- Re-run `supabase/inventory.sql` after this status change so the inventory and lot status constraints accept `in_transit`.
 - Cross variables require running `supabase/cross_variables.sql` in Supabase before using the `Cross variables` menu.
 - No billing or subscriptions.
 - No admin dashboard for feedback; feedback is read from Supabase Table Editor.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 
 function createId() {
@@ -35,6 +35,54 @@ function getItemRoi(item) {
   const purchasePrice = Number(item.purchase_price || 0)
 
   return profit === null || purchasePrice <= 0 ? null : (profit / purchasePrice) * 100
+}
+
+function getItemQuantity(item) {
+  return Math.max(1, Number(item.quantity) || 1)
+}
+
+function getItemBasePurchasePrice(item) {
+  return Number(item.base_purchase_price ?? item.purchase_price ?? 0)
+}
+
+function getItemUnitValue(item) {
+  return getItemBasePurchasePrice(item) / getItemQuantity(item)
+}
+
+function getShipmentTotal(shipment) {
+  const transportTotal = Number(shipment.store_to_forwarder || 0) + Number(shipment.forwarder_to_home || 0) + Number(shipment.extra_cost || 0) + Number(shipment.monthly_subscription || 0)
+  return transportTotal + (shipment.include_vat_in_cost === false ? 0 : Number(shipment.vat_amount || 0))
+}
+
+function getAllocatedCostByItem(allocations) {
+  return allocations.reduce((costs, allocation) => ({
+    ...costs,
+    [allocation.item_id]: Number(costs[allocation.item_id] || 0) + Number(allocation.allocated_cost || 0),
+  }), {})
+}
+
+function getLotMetrics(items) {
+  const soldItems = items.filter((item) => item.status === 'sold')
+  const soldPurchaseValue = soldItems.reduce((total, item) => total + Number(item.purchase_price || 0), 0)
+  const realisedProfit = soldItems.reduce((total, item) => total + (getItemProfit(item) || 0), 0)
+
+  return {
+    soldCount: soldItems.length,
+    itemCount: items.length,
+    roi: soldPurchaseValue > 0 ? (realisedProfit / soldPurchaseValue) * 100 : null,
+  }
+}
+
+function allocateAmount(total, count) {
+  if (total === '' || total === null || total === undefined || count === 0) {
+    return []
+  }
+
+  const totalCents = Math.round(Number(total) * 100)
+  const baseCents = Math.floor(totalCents / count)
+  const remainder = totalCents - (baseCents * count)
+
+  return Array.from({ length: count }, (_, index) => ((baseCents + (index === count - 1 ? remainder : 0)) / 100).toFixed(2))
 }
 
 function extractVariables(content) {
@@ -937,6 +985,7 @@ function GeneratorPanel({ template, initialValues = {}, crossVariables = {}, onC
 function InventoryForm({ initialItem, templates, onSave, onCancel }) {
   const [form, setForm] = useState(() => ({
     name: initialItem?.name ?? '',
+    quantity: initialItem?.quantity ?? 1,
     status: initialItem?.status ?? 'in_stock',
     item_type: initialItem?.item_type ?? '',
     condition: initialItem?.condition ?? '',
@@ -959,11 +1008,13 @@ function InventoryForm({ initialItem, templates, onSave, onCancel }) {
       ...initialItem,
       ...form,
       name: form.name.trim(),
+      quantity: Math.max(1, Number(form.quantity) || 1),
       item_type: form.item_type.trim() || null,
       condition: form.condition.trim() || null,
       platforms: form.platforms,
       purchase_date: form.purchase_date || null,
       purchase_price: Number(form.purchase_price) || 0,
+      base_purchase_price: Number(initialItem?.base_purchase_price ?? form.purchase_price) || 0,
       target_sale_price: form.target_sale_price === '' ? null : Number(form.target_sale_price),
       sale_date: form.sale_date || null,
       sale_price: form.sale_price === '' ? null : Number(form.sale_price),
@@ -976,6 +1027,7 @@ function InventoryForm({ initialItem, templates, onSave, onCancel }) {
       setForm((current) => ({
         ...current,
         name: '',
+        quantity: 1,
         purchase_price: '',
         target_sale_price: '',
         sale_date: '',
@@ -996,7 +1048,8 @@ function InventoryForm({ initialItem, templates, onSave, onCancel }) {
     <form className="form" onSubmit={handleSubmit}>
       <div className="form-grid form-grid--wide">
         <label><span>Item name</span><input value={form.name} onChange={(event) => updateField('name', event.target.value)} placeholder="Example: Nike Air Max 90" required /></label>
-        <label><span>Status</span><select value={form.status} onChange={(event) => updateField('status', event.target.value)}><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label>
+        <label><span>Quantity</span><input type="number" min="1" step="1" value={form.quantity} onChange={(event) => updateField('quantity', event.target.value)} required /></label>
+        <label><span>Status</span><select value={form.status} onChange={(event) => updateField('status', event.target.value)}><option value="in_transit">In transit</option><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label>
         <label><span>Type</span><input value={form.item_type} onChange={(event) => updateField('item_type', event.target.value)} placeholder="Sneakers" /></label>
         <label><span>Condition</span><input value={form.condition} onChange={(event) => updateField('condition', event.target.value)} placeholder="Very good" /></label>
         <fieldset className="platform-picker"><legend>Platforms</legend><div className="platform-options">{platformOptions.map((platform) => <label key={platform}><input type="checkbox" checked={form.platforms.includes(platform)} onChange={() => togglePlatform(platform)} /><span>{platform}</span></label>)}</div></fieldset>
@@ -1017,6 +1070,7 @@ function InventoryForm({ initialItem, templates, onSave, onCancel }) {
 function createBlankLotItem() {
   return {
     name: '',
+    quantity: 1,
     status: 'in_stock',
     item_type: '',
     condition: '',
@@ -1138,12 +1192,12 @@ function LotForm({ templates, onSave, onCancel }) {
     <form className="form" onSubmit={handleSubmit}>
       <label><span>Lot name</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Example: Sunday flea market haul" required /></label>
       <label><span>Lot notes</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Where the lot came from, shared details..." rows={3} /></label>
-      <fieldset className="lot-common-fields"><legend>Common values for this lot</legend><p>Set values shared by the items, then apply them before saving. You can still edit each item afterwards.</p><div className="form-grid form-grid--wide"><label><span>Purchase date</span><input type="date" value={commonFields.purchase_date} onChange={(event) => setCommonFields((current) => ({ ...current, purchase_date: event.target.value }))} /></label><label><span>Status</span><select value={commonFields.status} onChange={(event) => setCommonFields((current) => ({ ...current, status: event.target.value }))}><option value="">Keep item values</option><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label><label><span>Type</span><input value={commonFields.item_type} onChange={(event) => setCommonFields((current) => ({ ...current, item_type: event.target.value }))} placeholder="Clothing" /></label><label><span>Condition</span><input value={commonFields.condition} onChange={(event) => setCommonFields((current) => ({ ...current, condition: event.target.value }))} placeholder="Very good" /></label><label><span>Template</span><select value={commonFields.template_id} onChange={(event) => setCommonFields((current) => ({ ...current, template_id: event.target.value }))}><option value="">Keep item values</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div><fieldset className="platform-picker"><legend>Platforms</legend><div className="platform-options">{platformOptions.map((platform) => <label key={platform}><input type="checkbox" checked={commonFields.platforms.includes(platform)} onChange={() => toggleCommonPlatform(platform)} /><span>{platform}</span></label>)}</div></fieldset><button type="button" className="button button--ghost" onClick={applyCommonFields}>Apply to all items</button></fieldset>
+      <fieldset className="lot-common-fields"><legend>Common values for this lot</legend><p>Set values shared by the items, then apply them before saving. You can still edit each item afterwards.</p><div className="form-grid form-grid--wide"><label><span>Purchase date</span><input type="date" value={commonFields.purchase_date} onChange={(event) => setCommonFields((current) => ({ ...current, purchase_date: event.target.value }))} /></label><label><span>Status</span><select value={commonFields.status} onChange={(event) => setCommonFields((current) => ({ ...current, status: event.target.value }))}><option value="">Keep item values</option><option value="in_transit">In transit</option><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label><label><span>Type</span><input value={commonFields.item_type} onChange={(event) => setCommonFields((current) => ({ ...current, item_type: event.target.value }))} placeholder="Clothing" /></label><label><span>Condition</span><input value={commonFields.condition} onChange={(event) => setCommonFields((current) => ({ ...current, condition: event.target.value }))} placeholder="Very good" /></label><label><span>Template</span><select value={commonFields.template_id} onChange={(event) => setCommonFields((current) => ({ ...current, template_id: event.target.value }))}><option value="">Keep item values</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div><fieldset className="platform-picker"><legend>Platforms</legend><div className="platform-options">{platformOptions.map((platform) => <label key={platform}><input type="checkbox" checked={commonFields.platforms.includes(platform)} onChange={() => toggleCommonPlatform(platform)} /><span>{platform}</span></label>)}</div></fieldset><button type="button" className="button button--ghost" onClick={applyCommonFields}>Apply to all items</button></fieldset>
       <fieldset className="lot-pricing-fields"><legend>Lot pricing</legend><div className="form-grid form-grid--wide"><label><span>Lot purchase date</span><input type="date" value={lotFields.purchase_date} onChange={(event) => setLotFields((current) => ({ ...current, purchase_date: event.target.value }))} /></label><label><span>Lot purchase price</span><input type="number" min="0" step="0.01" value={lotFields.purchase_price} onChange={(event) => setLotFields((current) => ({ ...current, purchase_price: event.target.value }))} required /></label><label><span>Lot target sale price</span><input type="number" min="0" step="0.01" value={lotFields.target_sale_price} onChange={(event) => setLotFields((current) => ({ ...current, target_sale_price: event.target.value }))} /></label><label><span>Lot sale date</span><input type="date" value={lotFields.sale_date} onChange={(event) => setLotFields((current) => ({ ...current, sale_date: event.target.value }))} /></label><label><span>Lot sale price</span><input type="number" min="0" step="0.01" value={lotFields.sale_price} onChange={(event) => setLotFields((current) => ({ ...current, sale_price: event.target.value }))} /></label><label><span>Lot selling fees</span><input type="number" min="0" step="0.01" value={lotFields.selling_fees} onChange={(event) => setLotFields((current) => ({ ...current, selling_fees: event.target.value }))} /></label></div></fieldset>
       <label><span>Lot template</span><select value={lotFields.template_id} onChange={(event) => setLotFields((current) => ({ ...current, template_id: event.target.value }))}><option value="">No template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label>
       <div className="lot-form-items">
         <div className="lot-form-items__header"><div><h3>Items in this lot</h3><p>Each item keeps its own prices, status and listing details.</p></div></div>
-        {items.map((item, index) => <fieldset className="lot-item-form" key={index}><legend>Item {index + 1}</legend><div className="form-grid form-grid--wide"><label><span>Item name</span><input value={item.name} onChange={(event) => updateItem(index, 'name', event.target.value)} placeholder="Example: Denim jacket" required /></label><label><span>Status</span><select value={item.status} onChange={(event) => updateItem(index, 'status', event.target.value)}><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label><label><span>Type</span><input list="lot-type-options" value={item.item_type} onChange={(event) => updateItem(index, 'item_type', event.target.value)} placeholder="Clothing" /></label><label><span>Condition</span><input value={item.condition} onChange={(event) => updateItem(index, 'condition', event.target.value)} placeholder="Very good" /></label><label><span>Purchase date</span><input type="date" value={item.purchase_date} onChange={(event) => updateItem(index, 'purchase_date', event.target.value)} /></label><label><span>Purchase price</span><input type="number" min="0" step="0.01" value={item.purchase_price} onChange={(event) => updateItem(index, 'purchase_price', event.target.value)} required /></label><label><span>Target sale price</span><input type="number" min="0" step="0.01" value={item.target_sale_price} onChange={(event) => updateItem(index, 'target_sale_price', event.target.value)} /></label><label><span>Sale date</span><input type="date" value={item.sale_date} onChange={(event) => updateItem(index, 'sale_date', event.target.value)} /></label><label><span>Sale price</span><input type="number" min="0" step="0.01" value={item.sale_price} onChange={(event) => updateItem(index, 'sale_price', event.target.value)} /></label><label><span>Selling fees</span><input type="number" min="0" step="0.01" value={item.selling_fees} onChange={(event) => updateItem(index, 'selling_fees', event.target.value)} /></label><label><span>Template</span><select value={item.template_id} onChange={(event) => updateItem(index, 'template_id', event.target.value)}><option value="">No template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div><fieldset className="platform-picker"><legend>Platforms</legend><div className="platform-options">{platformOptions.map((platform) => <label key={platform}><input type="checkbox" checked={item.platforms.includes(platform)} onChange={() => togglePlatform(index, platform)} /><span>{platform}</span></label>)}</div></fieldset><label><span>Item notes</span><textarea value={item.notes} onChange={(event) => updateItem(index, 'notes', event.target.value)} rows={2} /></label>{items.length > 1 ? <button type="button" className="button button--danger lot-item-form__remove" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove item</button> : null}</fieldset>)}
+        {items.map((item, index) => <fieldset className="lot-item-form" key={index}><legend>Item {index + 1}</legend><div className="form-grid form-grid--wide"><label><span>Item name</span><input value={item.name} onChange={(event) => updateItem(index, 'name', event.target.value)} placeholder="Example: Denim jacket" required /></label><label><span>Status</span><select value={item.status} onChange={(event) => updateItem(index, 'status', event.target.value)}><option value="in_transit">In transit</option><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label><label><span>Type</span><input list="lot-type-options" value={item.item_type} onChange={(event) => updateItem(index, 'item_type', event.target.value)} placeholder="Clothing" /></label><label><span>Condition</span><input value={item.condition} onChange={(event) => updateItem(index, 'condition', event.target.value)} placeholder="Very good" /></label><label><span>Purchase date</span><input type="date" value={item.purchase_date} onChange={(event) => updateItem(index, 'purchase_date', event.target.value)} /></label><label><span>Purchase price</span><input type="number" min="0" step="0.01" value={item.purchase_price} onChange={(event) => updateItem(index, 'purchase_price', event.target.value)} required /></label><label><span>Target sale price</span><input type="number" min="0" step="0.01" value={item.target_sale_price} onChange={(event) => updateItem(index, 'target_sale_price', event.target.value)} /></label><label><span>Sale date</span><input type="date" value={item.sale_date} onChange={(event) => updateItem(index, 'sale_date', event.target.value)} /></label><label><span>Sale price</span><input type="number" min="0" step="0.01" value={item.sale_price} onChange={(event) => updateItem(index, 'sale_price', event.target.value)} /></label><label><span>Selling fees</span><input type="number" min="0" step="0.01" value={item.selling_fees} onChange={(event) => updateItem(index, 'selling_fees', event.target.value)} /></label><label><span>Template</span><select value={item.template_id} onChange={(event) => updateItem(index, 'template_id', event.target.value)}><option value="">No template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div><fieldset className="platform-picker"><legend>Platforms</legend><div className="platform-options">{platformOptions.map((platform) => <label key={platform}><input type="checkbox" checked={item.platforms.includes(platform)} onChange={() => togglePlatform(index, platform)} /><span>{platform}</span></label>)}</div></fieldset><label><span>Item notes</span><textarea value={item.notes} onChange={(event) => updateItem(index, 'notes', event.target.value)} rows={2} /></label>{items.length > 1 ? <button type="button" className="button button--danger lot-item-form__remove" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove item</button> : null}</fieldset>)}
         <button type="button" className="button button--ghost lot-form-items__add" onClick={() => setItems((current) => [...current, { ...createBlankLotItem(), purchase_date: commonFields.purchase_date, status: commonFields.status || 'in_stock', item_type: commonFields.item_type, condition: commonFields.condition, template_id: commonFields.template_id, platforms: commonFields.platforms }])}>+ Add sub-item</button>
       </div>
       <div className="form__actions"><button type="button" className="button button--ghost" onClick={onCancel}>Cancel</button><button type="submit" className="button button--primary">Create lot</button></div>
@@ -1161,29 +1215,53 @@ function LotSection({ lot, items, templates, onDelete, onEdit, onDuplicate, onGe
 function LotFormV2({ templates, onSave, onCancel }) {
   const [name, setName] = useState('')
   const [notes, setNotes] = useState('')
-  const [commonFields, setCommonFields] = useState({ purchase_date: '', status: '', item_type: '', condition: '', template_id: '', platforms: [] })
+  const [commonFields, setCommonFields] = useState({ purchase_date: '', status: '', item_type: '', condition: '', template_id: '', platforms: [], quantity: 1 })
   const [lotFields, setLotFields] = useState({ purchase_date: '', purchase_price: '', target_sale_price: '', sale_date: '', sale_price: '', selling_fees: 0, template_id: '' })
   const [items, setItems] = useState([createBlankLotItem()])
+  const previousAllocation = useRef({ purchase: [], target: [] })
+
+  useEffect(() => {
+    const purchaseAllocation = allocateAmount(lotFields.purchase_price, items.length)
+    const targetAllocation = allocateAmount(lotFields.target_sale_price, items.length)
+    const canUpdate = (field, allocation) => {
+      if (!allocation.length) {
+        return false
+      }
+
+      const previous = previousAllocation.current[field]
+      return items.every((item, index) => item[field === 'purchase' ? 'purchase_price' : 'target_sale_price'] === '' || Number(item[field === 'purchase' ? 'purchase_price' : 'target_sale_price']) === Number(previous[index]))
+    }
+
+    if (canUpdate('purchase', purchaseAllocation) || canUpdate('target', targetAllocation)) {
+      setItems((current) => current.map((item, index) => ({
+        ...item,
+        purchase_price: canUpdate('purchase', purchaseAllocation) ? purchaseAllocation[index] : item.purchase_price,
+        target_sale_price: canUpdate('target', targetAllocation) ? targetAllocation[index] : item.target_sale_price,
+      })))
+    }
+
+    previousAllocation.current = { purchase: purchaseAllocation, target: targetAllocation }
+  }, [lotFields.purchase_price, lotFields.target_sale_price, items.length])
 
   const updateItem = (index, field, value) => setItems((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item))
   const togglePlatform = (index, platform) => updateItem(index, 'platforms', items[index].platforms.includes(platform) ? items[index].platforms.filter((value) => value !== platform) : [...items[index].platforms, platform])
   const toggleCommonPlatform = (platform) => setCommonFields((current) => ({ ...current, platforms: current.platforms.includes(platform) ? current.platforms.filter((value) => value !== platform) : [...current.platforms, platform] }))
   const applyCommonFields = () => {
     setLotFields((current) => ({ ...current, template_id: commonFields.template_id || current.template_id }))
-    setItems((current) => current.map((item) => ({ ...item, purchase_date: commonFields.purchase_date || item.purchase_date, status: commonFields.status || item.status, item_type: commonFields.item_type || item.item_type, condition: commonFields.condition || item.condition, template_id: commonFields.template_id || item.template_id, platforms: commonFields.platforms.length ? commonFields.platforms : item.platforms })))
+    setItems((current) => current.map((item) => ({ ...item, quantity: Math.max(1, Number(commonFields.quantity) || 1), purchase_date: commonFields.purchase_date || item.purchase_date, status: commonFields.status || item.status, item_type: commonFields.item_type || item.item_type, condition: commonFields.condition || item.condition, template_id: commonFields.template_id || item.template_id, platforms: commonFields.platforms.length ? commonFields.platforms : item.platforms })))
   }
-  const addItem = () => setItems((current) => [...current, { ...createBlankLotItem(), purchase_date: commonFields.purchase_date, status: commonFields.status || 'in_stock', item_type: commonFields.item_type, condition: commonFields.condition, template_id: commonFields.template_id, platforms: commonFields.platforms }])
+  const addItem = () => setItems((current) => [...current, { ...createBlankLotItem(), quantity: Math.max(1, Number(commonFields.quantity) || 1), purchase_date: commonFields.purchase_date, status: commonFields.status || 'in_stock', item_type: commonFields.item_type, condition: commonFields.condition, template_id: commonFields.template_id, platforms: commonFields.platforms }])
   const handleSubmit = (event) => {
     event.preventDefault()
     onSave({
       name: name.trim(),
       notes: notes.trim() || null,
       lotFields: { ...lotFields, purchase_date: lotFields.purchase_date || null, purchase_price: Number(lotFields.purchase_price) || 0, target_sale_price: lotFields.target_sale_price === '' ? null : Number(lotFields.target_sale_price), sale_date: lotFields.sale_date || null, sale_price: lotFields.sale_price === '' ? null : Number(lotFields.sale_price), selling_fees: Number(lotFields.selling_fees) || 0 },
-      items: items.map((item) => ({ ...item, name: item.name.trim(), item_type: item.item_type.trim() || null, condition: item.condition.trim() || null, purchase_date: item.purchase_date || null, purchase_price: Number(item.purchase_price) || 0, target_sale_price: item.target_sale_price === '' ? null : Number(item.target_sale_price), sale_date: item.sale_date || null, sale_price: item.sale_price === '' ? null : Number(item.sale_price), selling_fees: Number(item.selling_fees) || 0, template_id: item.template_id || null, notes: item.notes.trim() || null })),
+      items: items.map((item) => ({ ...item, name: item.name.trim(), quantity: Math.max(1, Number(item.quantity) || 1), item_type: item.item_type.trim() || null, condition: item.condition.trim() || null, purchase_date: item.purchase_date || null, purchase_price: Number(item.purchase_price) || 0, base_purchase_price: Number(item.purchase_price) || 0, target_sale_price: item.target_sale_price === '' ? null : Number(item.target_sale_price), sale_date: item.sale_date || null, sale_price: item.sale_price === '' ? null : Number(item.sale_price), selling_fees: Number(item.selling_fees) || 0, template_id: item.template_id || null, notes: item.notes.trim() || null })),
     })
   }
 
-  return <form className="form" onSubmit={handleSubmit}><label><span>Lot name</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Example: Mega Construx lot" required /></label><label><span>Lot notes</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} /></label><fieldset className="lot-common-fields"><legend>Common values</legend><p>Apply these values to all sub-items before saving. Each item can be edited later.</p><div className="form-grid form-grid--wide"><label><span>Purchase date</span><input type="date" value={commonFields.purchase_date} onChange={(event) => setCommonFields((current) => ({ ...current, purchase_date: event.target.value }))} /></label><label><span>Status</span><select value={commonFields.status} onChange={(event) => setCommonFields((current) => ({ ...current, status: event.target.value }))}><option value="">Keep item values</option><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label><label><span>Type</span><input value={commonFields.item_type} onChange={(event) => setCommonFields((current) => ({ ...current, item_type: event.target.value }))} placeholder="Clothing" /></label><label><span>Condition</span><input value={commonFields.condition} onChange={(event) => setCommonFields((current) => ({ ...current, condition: event.target.value }))} placeholder="Very good" /></label><label><span>Template</span><select value={commonFields.template_id} onChange={(event) => setCommonFields((current) => ({ ...current, template_id: event.target.value }))}><option value="">Keep item values</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div><fieldset className="platform-picker"><legend>Platforms</legend><div className="platform-options">{platformOptions.map((platform) => <label key={platform}><input type="checkbox" checked={commonFields.platforms.includes(platform)} onChange={() => toggleCommonPlatform(platform)} /><span>{platform}</span></label>)}</div></fieldset><button type="button" className="button button--ghost" onClick={applyCommonFields}>Apply to all items</button></fieldset><fieldset className="lot-pricing-fields"><legend>Lot pricing</legend><div className="form-grid form-grid--wide"><label><span>Purchase date</span><input type="date" value={lotFields.purchase_date} onChange={(event) => setLotFields((current) => ({ ...current, purchase_date: event.target.value }))} /></label><label><span>Purchase price</span><input type="number" min="0" step="0.01" value={lotFields.purchase_price} onChange={(event) => setLotFields((current) => ({ ...current, purchase_price: event.target.value }))} required /></label><label><span>Target sale price</span><input type="number" min="0" step="0.01" value={lotFields.target_sale_price} onChange={(event) => setLotFields((current) => ({ ...current, target_sale_price: event.target.value }))} /></label><label><span>Sale date</span><input type="date" value={lotFields.sale_date} onChange={(event) => setLotFields((current) => ({ ...current, sale_date: event.target.value }))} /></label><label><span>Sale price</span><input type="number" min="0" step="0.01" value={lotFields.sale_price} onChange={(event) => setLotFields((current) => ({ ...current, sale_price: event.target.value }))} /></label><label><span>Selling fees</span><input type="number" min="0" step="0.01" value={lotFields.selling_fees} onChange={(event) => setLotFields((current) => ({ ...current, selling_fees: event.target.value }))} /></label><label><span>Template</span><select value={lotFields.template_id} onChange={(event) => setLotFields((current) => ({ ...current, template_id: event.target.value }))}><option value="">No template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div></fieldset><div className="lot-form-items"><div className="lot-form-items__header"><div><h3>Items in this lot</h3><p>Minimise an item to keep the form compact.</p></div></div>{items.map((item, index) => <details className="lot-item-form" open key={index}><summary>Item {index + 1}: {item.name || 'Unnamed item'}</summary><div className="form-grid form-grid--wide"><label><span>Item name</span><input value={item.name} onChange={(event) => updateItem(index, 'name', event.target.value)} required /></label><label><span>Status</span><select value={item.status} onChange={(event) => updateItem(index, 'status', event.target.value)}><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label><label><span>Type</span><input value={item.item_type} onChange={(event) => updateItem(index, 'item_type', event.target.value)} /></label><label><span>Condition</span><input value={item.condition} onChange={(event) => updateItem(index, 'condition', event.target.value)} /></label><label><span>Purchase date</span><input type="date" value={item.purchase_date} onChange={(event) => updateItem(index, 'purchase_date', event.target.value)} /></label><label><span>Purchase price</span><input type="number" min="0" step="0.01" value={item.purchase_price} onChange={(event) => updateItem(index, 'purchase_price', event.target.value)} required /></label><label><span>Target sale price</span><input type="number" min="0" step="0.01" value={item.target_sale_price} onChange={(event) => updateItem(index, 'target_sale_price', event.target.value)} /></label><label><span>Template</span><select value={item.template_id} onChange={(event) => updateItem(index, 'template_id', event.target.value)}><option value="">No template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div><fieldset className="platform-picker"><legend>Platforms</legend><div className="platform-options">{platformOptions.map((platform) => <label key={platform}><input type="checkbox" checked={item.platforms.includes(platform)} onChange={() => togglePlatform(index, platform)} /><span>{platform}</span></label>)}</div></fieldset><label><span>Item notes</span><textarea value={item.notes} onChange={(event) => updateItem(index, 'notes', event.target.value)} rows={2} /></label>{items.length > 1 ? <button type="button" className="button button--danger" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove item</button> : null}</details>)}<button type="button" className="button button--ghost lot-form-items__add" onClick={addItem}>+ Add sub-item</button></div><div className="form__actions"><button type="button" className="button button--ghost" onClick={onCancel}>Cancel</button><button type="submit" className="button button--primary">Create lot</button></div></form>
+  return <form className="form" onSubmit={handleSubmit}><label><span>Lot name</span><input value={name} onChange={(event) => setName(event.target.value)} placeholder="Example: Mega Construx lot" required /></label><label><span>Lot notes</span><textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} /></label><fieldset className="lot-common-fields"><legend>Common values</legend><p>Apply these values to all sub-items before saving. Each item can be edited later.</p><div className="form-grid form-grid--wide"><label><span>Purchase date</span><input type="date" value={commonFields.purchase_date} onChange={(event) => setCommonFields((current) => ({ ...current, purchase_date: event.target.value }))} /></label><label><span>Status</span><select value={commonFields.status} onChange={(event) => setCommonFields((current) => ({ ...current, status: event.target.value }))}><option value="">Keep item values</option><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label><label><span>Type</span><input value={commonFields.item_type} onChange={(event) => setCommonFields((current) => ({ ...current, item_type: event.target.value }))} placeholder="Clothing" /></label><label><span>Condition</span><input value={commonFields.condition} onChange={(event) => setCommonFields((current) => ({ ...current, condition: event.target.value }))} placeholder="Very good" /></label><label><span>Template</span><select value={commonFields.template_id} onChange={(event) => setCommonFields((current) => ({ ...current, template_id: event.target.value }))}><option value="">Keep item values</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div><fieldset className="platform-picker"><legend>Platforms</legend><div className="platform-options">{platformOptions.map((platform) => <label key={platform}><input type="checkbox" checked={commonFields.platforms.includes(platform)} onChange={() => toggleCommonPlatform(platform)} /><span>{platform}</span></label>)}</div></fieldset><button type="button" className="button button--ghost" onClick={applyCommonFields}>Apply to all items</button></fieldset><fieldset className="lot-pricing-fields"><legend>Lot pricing</legend><div className="form-grid form-grid--wide"><label><span>Purchase date</span><input type="date" value={lotFields.purchase_date} onChange={(event) => setLotFields((current) => ({ ...current, purchase_date: event.target.value }))} /></label><label><span>Purchase price</span><input type="number" min="0" step="0.01" value={lotFields.purchase_price} onChange={(event) => setLotFields((current) => ({ ...current, purchase_price: event.target.value }))} required /></label><label><span>Target sale price</span><input type="number" min="0" step="0.01" value={lotFields.target_sale_price} onChange={(event) => setLotFields((current) => ({ ...current, target_sale_price: event.target.value }))} /></label><label><span>Sale date</span><input type="date" value={lotFields.sale_date} onChange={(event) => setLotFields((current) => ({ ...current, sale_date: event.target.value }))} /></label><label><span>Sale price</span><input type="number" min="0" step="0.01" value={lotFields.sale_price} onChange={(event) => setLotFields((current) => ({ ...current, sale_price: event.target.value }))} /></label><label><span>Selling fees</span><input type="number" min="0" step="0.01" value={lotFields.selling_fees} onChange={(event) => setLotFields((current) => ({ ...current, selling_fees: event.target.value }))} /></label><label><span>Template</span><select value={lotFields.template_id} onChange={(event) => setLotFields((current) => ({ ...current, template_id: event.target.value }))}><option value="">No template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div></fieldset><div className="lot-form-items"><div className="lot-form-items__header"><div><h3>Items in this lot</h3><p>Minimise an item to keep the form compact.</p></div></div>{items.map((item, index) => <details className="lot-item-form" open key={index}><summary>Item {index + 1}: {item.name || 'Unnamed item'}</summary><div className="form-grid form-grid--wide">  <label><span>Item name</span><input value={item.name} onChange={(event) => updateItem(index, 'name', event.target.value)} required /></label><label><span>Quantity</span><input type="number" min="1" step="1" value={item.quantity} onChange={(event) => updateItem(index, 'quantity', event.target.value)} required /></label><label><span>Status</span><select value={item.status} onChange={(event) => updateItem(index, 'status', event.target.value)}><option value="in_stock">In stock</option><option value="to_list">To list</option><option value="listed">Listed</option><option value="sold">Sold</option></select></label><label><span>Type</span><input value={item.item_type} onChange={(event) => updateItem(index, 'item_type', event.target.value)} /></label><label><span>Condition</span><input value={item.condition} onChange={(event) => updateItem(index, 'condition', event.target.value)} /></label><label><span>Purchase date</span><input type="date" value={item.purchase_date} onChange={(event) => updateItem(index, 'purchase_date', event.target.value)} /></label><label><span>Purchase price</span><input type="number" min="0" step="0.01" value={item.purchase_price} onChange={(event) => updateItem(index, 'purchase_price', event.target.value)} required /></label><label><span>Target sale price</span><input type="number" min="0" step="0.01" value={item.target_sale_price} onChange={(event) => updateItem(index, 'target_sale_price', event.target.value)} /></label><label><span>Template</span><select value={item.template_id} onChange={(event) => updateItem(index, 'template_id', event.target.value)}><option value="">No template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label></div><fieldset className="platform-picker"><legend>Platforms</legend><div className="platform-options">{platformOptions.map((platform) => <label key={platform}><input type="checkbox" checked={item.platforms.includes(platform)} onChange={() => togglePlatform(index, platform)} /><span>{platform}</span></label>)}</div></fieldset><label><span>Item notes</span><textarea value={item.notes} onChange={(event) => updateItem(index, 'notes', event.target.value)} rows={2} /></label>{items.length > 1 ? <button type="button" className="button button--danger" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Remove item</button> : null}</details>)}<button type="button" className="button button--ghost lot-form-items__add" onClick={addItem}>+ Add sub-item</button></div><div className="form__actions"><button type="button" className="button button--ghost" onClick={onCancel}>Cancel</button><button type="submit" className="button button--primary">Create lot</button></div></form>
 }
 
 function LotSettingsForm({ lot, templates, onSave, onCancel }) {
@@ -1221,57 +1299,208 @@ function LotSettingsForm({ lot, templates, onSave, onCancel }) {
   return <form className="form" onSubmit={handleSubmit}><label><span>Lot name</span><input value={form.name} onChange={(event) => updateField('name', event.target.value)} required /></label><label><span>Template</span><select value={form.template_id} onChange={(event) => updateField('template_id', event.target.value)}><option value="">No template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label><div className="form-grid form-grid--wide"><label><span>Purchase date</span><input type="date" value={form.purchase_date} onChange={(event) => updateField('purchase_date', event.target.value)} /></label><label><span>Purchase price</span><input type="number" min="0" step="0.01" value={form.purchase_price} onChange={(event) => updateField('purchase_price', event.target.value)} required /></label><label><span>Target sale price</span><input type="number" min="0" step="0.01" value={form.target_sale_price} onChange={(event) => updateField('target_sale_price', event.target.value)} /></label><label><span>Sale date</span><input type="date" value={form.sale_date} onChange={(event) => updateField('sale_date', event.target.value)} /></label><label><span>Sale price</span><input type="number" min="0" step="0.01" value={form.sale_price} onChange={(event) => updateField('sale_price', event.target.value)} /></label><label><span>Selling fees</span><input type="number" min="0" step="0.01" value={form.selling_fees} onChange={(event) => updateField('selling_fees', event.target.value)} /></label></div><label><span>Lot notes</span><textarea value={form.notes} onChange={(event) => updateField('notes', event.target.value)} rows={4} /></label><div className="form__actions"><button type="button" className="button button--ghost" onClick={onCancel}>Cancel</button><button type="submit" className="button button--primary">Save lot</button></div></form>
 }
 
-function LotSectionV2({ lot, items, templates, onDelete, onEdit, onDuplicate, onGenerateLot, onEditLot }) {
+function InventoryLotRow({ lot, items, templates, matches, onDelete, onEdit, onDuplicate, onGenerateLot, onEditLot, onGenerate }) {
+  const [isOpen, setIsOpen] = useState(false)
   const purchaseValue = items.reduce((total, item) => total + Number(item.purchase_price || 0), 0)
   const targetValue = items.reduce((total, item) => total + Number(item.target_sale_price || 0), 0)
   const linkedTemplate = templates.find((template) => template.id === lot.template_id)
+  const metrics = getLotMetrics(items)
 
   return (
-    <details className="lot-section">
-      <summary>
-        <span><strong>{lot.name}</strong><small>{items.length} item{items.length === 1 ? '' : 's'}</small></span>
-        <span className="lot-section__summary"><b>{formatMoney(lot.purchase_price || purchaseValue)} purchase</b><b>{formatMoney(lot.target_sale_price || targetValue)} target</b></span>
+    <details className="inventory-tree__lot" open={isOpen} onToggle={(event) => setIsOpen(event.currentTarget.open)}>
+      <summary className="inventory-tree__row inventory-tree__row--lot">
+        <span className="inventory-tree__name"><strong>{lot.name}</strong><small>{metrics.itemCount} item{metrics.itemCount === 1 ? '' : 's'} · {metrics.soldCount}/{metrics.itemCount} sold</small></span>
+        <span className="inventory-tree__metrics"><b>{formatMoney(lot.purchase_price ?? purchaseValue)}</b><b>{formatMoney(lot.target_sale_price ?? targetValue)} target</b><span className="inventory-pill">{metrics.soldCount}/{metrics.itemCount} sold</span><span className="inventory-pill">ROI {metrics.roi === null ? '—' : `${metrics.roi.toFixed(1)}%`}</span></span>
+        <span className="table-actions"><button type="button" className="button button--ghost" onClick={(event) => { event.preventDefault(); onEditLot(lot) }}>Edit</button><button type="button" className="button button--danger" onClick={(event) => { event.preventDefault(); onDelete(lot.id) }}>Delete</button></span>
       </summary>
       <div className="lot-section__body">
         {lot.notes ? <p className="lot-section__notes">{lot.notes}</p> : null}
         <div className="lot-section__actions">
           {linkedTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerateLot(lot, items, linkedTemplate)}>Generate lot</button> : null}
-          <button type="button" className="button button--ghost" onClick={() => onEditLot(lot)}>Edit lot</button>
-          <button type="button" className="button button--danger" onClick={() => onDelete(lot.id)}>Delete lot</button>
         </div>
         <div className="lot-items-list">
-          {items.map((item) => <article className="lot-item-row" key={item.id}>
-            <div><strong>{item.name}</strong><small>{item.item_type || 'Uncategorised'} · {item.condition || 'Condition not set'}</small></div>
+          {items.filter(matches).map((item) => {
+            const profit = getItemProfit(item)
+            const roi = getItemRoi(item)
+            const itemTemplate = templates.find((template) => template.id === item.template_id)
+            return <article className="inventory-tree__row inventory-tree__row--item" key={item.id}>
+            <span className="inventory-tree__name"><strong>{item.name}</strong><small>{item.item_type || 'Uncategorised'} · {item.condition || 'Condition not set'}</small></span>
             <span>{formatMoney(item.purchase_price)} purchase</span>
             <span>{item.target_sale_price === null ? '—' : formatMoney(item.target_sale_price)} target</span>
-            <span className={`status-badge status-badge--${item.status}`}>{item.status.replace('_', ' ')}</span>
-            <div className="table-actions"><button type="button" className="button button--ghost" onClick={() => onEdit(item)}>Edit</button><button type="button" className="button button--ghost" onClick={() => onDuplicate(item)}>Duplicate</button></div>
-          </article>)}
+            <span className="status-badge status-badge--compact">{item.status.replace('_', ' ')}</span>
+            <span className="inventory-pill">{item.status === 'sold' ? 'Sold' : 'Not sold'}</span>
+            <span className={roi !== null && roi < 0 ? 'value-negative' : 'value-positive'}>ROI {roi === null ? '—' : `${roi.toFixed(1)}%`}</span>
+            <span className={profit !== null && profit < 0 ? 'value-negative' : 'value-positive'}>{profit === null ? '—' : formatMoney(profit)}</span>
+            <span className="table-actions">{itemTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerate(item, itemTemplate)}>Generate</button> : null}<button type="button" className="button button--ghost" onClick={() => onEdit(item)}>Edit</button><button type="button" className="button button--ghost" onClick={() => onDuplicate(item)}>Duplicate</button></span>
+          </article>
+          })}
         </div>
       </div>
     </details>
   )
 }
 
-function InventoryPage({ items, lots, templates, onCreate, onCreateLot, onEdit, onEditLot, onDelete, onDuplicate, onDeleteLot, onGenerate, onGenerateLot }) {
+function ShipmentForm({ items, lots, shipments, allocations, onSave, onCancel }) {
+  const [form, setForm] = useState({
+    name: '',
+    shipment_date: new Date().toISOString().slice(0, 10),
+    store_to_forwarder: '',
+    forwarder_to_home: '',
+    extra_cost: '',
+    monthly_subscription: '',
+    vat_mode: 'none',
+    vat_amount: '',
+    vat_rate: '20',
+    vat_base: '',
+    include_vat_in_cost: true,
+    allocation_method: 'value',
+    notes: '',
+  })
+  const [selected, setSelected] = useState({})
+  const [manualCosts, setManualCosts] = useState({})
+
+  const selectedRows = items.filter((item) => selected[item.id] > 0)
+  const productValue = selectedRows.reduce((total, item) => total + getItemUnitValue(item) * Number(selected[item.id]), 0)
+  const selectedUnits = selectedRows.reduce((total, item) => total + Number(selected[item.id]), 0)
+  const vatAmount = form.vat_mode === 'automatic'
+    ? (Number(form.vat_base || productValue) * Number(form.vat_rate || 0)) / 100
+    : Number(form.vat_amount || 0)
+  const shipment = { ...form, vat_amount: vatAmount }
+  const totalToAllocate = getShipmentTotal(shipment)
+  const alreadyAllocated = new Set(allocations.map((allocation) => allocation.item_id))
+
+  const updateField = (field, value) => setForm((current) => ({ ...current, [field]: value }))
+  const toggleLot = (lotId) => {
+    const lotItems = items.filter((item) => item.lot_id === lotId)
+    const shouldSelect = lotItems.some((item) => !selected[item.id])
+    setSelected((current) => lotItems.reduce((next, item) => ({ ...next, [item.id]: shouldSelect ? getItemQuantity(item) : 0 }), { ...current }))
+  }
+  const getAllocation = (item) => {
+    const quantity = Number(selected[item.id] || 0)
+    if (!quantity || !totalToAllocate) return 0
+    if (form.allocation_method === 'manual') return Number(manualCosts[item.id] || 0)
+    if (form.allocation_method === 'equal') return (totalToAllocate / selectedUnits) * quantity
+    return (totalToAllocate * (getItemUnitValue(item) * quantity)) / productValue
+  }
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    const preview = selectedRows.map((item) => ({ item_id: item.id, quantity: Number(selected[item.id]), allocated_cost: Number(getAllocation(item).toFixed(2)) }))
+    if (form.allocation_method !== 'manual' && preview.length) {
+      const allocatedBeforeRemainder = preview.slice(0, -1).reduce((total, row) => total + row.allocated_cost, 0)
+      preview[preview.length - 1].allocated_cost = Number(Math.max(0, totalToAllocate - allocatedBeforeRemainder).toFixed(2))
+    }
+    const allocatedTotal = preview.reduce((total, row) => total + row.allocated_cost, 0)
+    if (!form.name.trim() || !selectedRows.length) return
+    if (form.allocation_method === 'manual' && Math.abs(allocatedTotal - totalToAllocate) > 0.01) {
+      window.alert(`Manual allocations must total ${formatMoney(totalToAllocate)}.`)
+      return
+    }
+    onSave({ ...form, name: form.name.trim(), vat_amount: vatAmount, allocations: preview })
+  }
+
+  return <form className="form shipment-form" onSubmit={handleSubmit}>
+    <div className="form-grid form-grid--wide">
+      <label><span>Shipment name</span><input value={form.name} onChange={(event) => updateField('name', event.target.value)} placeholder="October shipment" required /></label>
+      <label><span>Shipment date</span><input type="date" value={form.shipment_date} onChange={(event) => updateField('shipment_date', event.target.value)} required /></label>
+      <label><span>Store to forwarder</span><input type="number" min="0" step="0.01" value={form.store_to_forwarder} onChange={(event) => updateField('store_to_forwarder', event.target.value)} /></label>
+      <label><span>Forwarder to home</span><input type="number" min="0" step="0.01" value={form.forwarder_to_home} onChange={(event) => updateField('forwarder_to_home', event.target.value)} /></label>
+      <label><span>Monthly subscription</span><input type="number" min="0" step="0.01" value={form.monthly_subscription} onChange={(event) => updateField('monthly_subscription', event.target.value)} /></label>
+      <label><span>Additional fees</span><input type="number" min="0" step="0.01" value={form.extra_cost} onChange={(event) => updateField('extra_cost', event.target.value)} /></label>
+    </div>
+    <fieldset className="shipment-fieldset"><legend>VAT</legend><div className="form-grid form-grid--wide"><label><span>VAT mode</span><select value={form.vat_mode} onChange={(event) => updateField('vat_mode', event.target.value)}><option value="none">Not applicable</option><option value="manual">Enter total manually</option><option value="automatic">Calculate from rate</option></select></label>{form.vat_mode === 'manual' ? <label><span>Total VAT</span><input type="number" min="0" step="0.01" value={form.vat_amount} onChange={(event) => updateField('vat_amount', event.target.value)} /></label> : null}{form.vat_mode === 'automatic' ? <><label><span>Taxable base</span><input type="number" min="0" step="0.01" placeholder={productValue.toFixed(2)} value={form.vat_base} onChange={(event) => updateField('vat_base', event.target.value)} /></label><label><span>VAT rate (%)</span><input type="number" min="0" step="0.01" value={form.vat_rate} onChange={(event) => updateField('vat_rate', event.target.value)} /></label></> : null}<label className="checkbox-label"><input type="checkbox" checked={form.include_vat_in_cost} onChange={(event) => updateField('include_vat_in_cost', event.target.checked)} /><span>Include VAT in item cost</span></label></div><p className="helper-text">Calculated VAT: {formatMoney(vatAmount)}</p></fieldset>
+    <fieldset className="shipment-fieldset"><legend>Allocation</legend><label><span>Allocation method</span><select value={form.allocation_method} onChange={(event) => updateField('allocation_method', event.target.value)}><option value="value">Proportional to value</option><option value="equal">Equal per physical unit</option><option value="manual">Manual amounts</option></select></label><p className="helper-text">Only selected physical units receive these costs. Items already assigned to a shipment are marked below.</p><div className="shipment-selection">{lots.map((lot) => { const lotItems = items.filter((item) => item.lot_id === lot.id); return <div className="shipment-group" key={lot.id}><button type="button" className="button button--ghost" onClick={() => toggleLot(lot.id)}>Toggle {lot.name}</button>{lotItems.map((item) => <ShipmentItemRow key={item.id} item={item} selected={selected[item.id] || 0} alreadyAllocated={alreadyAllocated.has(item.id)} allocation={getAllocation(item)} manualCost={manualCosts[item.id] || ''} onQuantity={(value) => setSelected((current) => ({ ...current, [item.id]: Math.min(getItemQuantity(item), Math.max(0, Number(value) || 0)) }))} onManualCost={(value) => setManualCosts((current) => ({ ...current, [item.id]: value }))} />)}</div> })}{items.filter((item) => !item.lot_id).map((item) => <ShipmentItemRow key={item.id} item={item} selected={selected[item.id] || 0} alreadyAllocated={alreadyAllocated.has(item.id)} allocation={getAllocation(item)} manualCost={manualCosts[item.id] || ''} onQuantity={(value) => setSelected((current) => ({ ...current, [item.id]: Math.min(getItemQuantity(item), Math.max(0, Number(value) || 0)) }))} onManualCost={(value) => setManualCosts((current) => ({ ...current, [item.id]: value }))} />)}</div></fieldset>
+    <div className="shipment-summary"><strong>{selectedUnits} physical units selected</strong><strong>{formatMoney(totalToAllocate)} to allocate</strong><span>Product value: {formatMoney(productValue)}</span></div>
+    <label><span>Notes</span><textarea value={form.notes} onChange={(event) => updateField('notes', event.target.value)} rows={3} /></label>
+    <div className="form__actions"><button type="button" className="button button--ghost" onClick={onCancel}>Cancel</button><button type="submit" className="button button--primary">Apply shipment costs</button></div>
+  </form>
+}
+
+function ShipmentItemRow({ item, selected, alreadyAllocated, allocation, manualCost, onQuantity, onManualCost }) {
+  return <div className="shipment-item-row"><div><strong>{item.name}</strong><small>{getItemQuantity(item)} units · {formatMoney(getItemUnitValue(item))} per unit {alreadyAllocated ? '· Already in a shipment' : ''}</small></div><input type="number" min="0" max={getItemQuantity(item)} step="1" value={selected} onChange={(event) => onQuantity(event.target.value)} aria-label={`Quantity of ${item.name}`} />{alreadyAllocated ? <span className="inventory-pill">Already assigned</span> : null}<span>{manualCost !== '' ? formatMoney(manualCost) : formatMoney(allocation)}</span>{allocation !== 0 ? <input className="shipment-manual-cost" type="number" min="0" step="0.01" value={manualCost} onChange={(event) => onManualCost(event.target.value)} placeholder="Manual cost" aria-label={`Allocated cost for ${item.name}`} /> : null}</div>
+}
+
+function InventoryPage({ items, lots, templates, shipments, allocations, onCreate, onCreateLot, onCreateShipment, onEdit, onEditLot, onDelete, onDuplicate, onDeleteLot, onDeleteShipment, onGenerate, onGenerateLot }) {
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
+  const [sortBy, setSortBy] = useState('purchase_date')
+  const [sortDirection, setSortDirection] = useState('desc')
   const totalPurchase = items.reduce((total, item) => total + Number(item.purchase_price || 0), 0)
-  const stockItems = items.filter((item) => item.status !== 'sold')
+  const stockItems = items.filter((item) => item.status !== 'sold' && item.status !== 'in_transit')
   const targetValue = stockItems.reduce((total, item) => total + Number(item.target_sale_price || 0), 0)
   const soldItems = items.filter((item) => item.status === 'sold')
   const realisedSales = soldItems.reduce((total, item) => total + Number(item.sale_price || 0), 0)
   const realisedProfit = soldItems.reduce((total, item) => total + (getItemProfit(item) || 0), 0)
   const soldPurchaseValue = soldItems.reduce((total, item) => total + Number(item.purchase_price || 0), 0)
   const realisedRoi = soldPurchaseValue > 0 ? (realisedProfit / soldPurchaseValue) * 100 : null
-  const visibleItems = items.filter((item) => {
+  const matchesItem = (item) => {
     const matchesFilter = filter === 'all' || item.status === filter
     const matchesQuery = !query.trim() || `${item.name} ${item.item_type ?? ''} ${getItemPlatforms(item).join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())
     return matchesFilter && matchesQuery
-  })
+  }
+  const standaloneItems = items.filter((item) => !item.lot_id && matchesItem(item))
+  const visibleLots = lots.map((lot) => {
+    const lotItems = items.filter((item) => item.lot_id === lot.id)
+    const matchesLot = filter === 'all' || lotItems.some((item) => item.status === filter)
+    const matchesSearch = !query.trim() || `${lot.name} ${lot.notes ?? ''}`.toLowerCase().includes(query.trim().toLowerCase()) || lotItems.some((item) => matchesItem(item))
+    return { lot, items: lotItems, visible: matchesLot && matchesSearch }
+  }).filter(({ visible }) => visible)
+  const visibleCount = standaloneItems.length + visibleLots.length
+  const getLotPurchaseValue = (lot, lotItems) => lot.purchase_price ?? lotItems.reduce((total, item) => total + Number(item.purchase_price || 0), 0)
+  const getLotPurchaseDate = (lot, lotItems) => lot.purchase_date ?? lotItems.map((item) => item.purchase_date).filter(Boolean).sort()[0] ?? ''
+  const compareEntries = (first, second) => {
+    let firstValue
+    let secondValue
+
+    if (sortBy === 'name') {
+      firstValue = first.name.toLowerCase()
+      secondValue = second.name.toLowerCase()
+    } else if (sortBy === 'purchase_price') {
+      firstValue = first.purchaseValue
+      secondValue = second.purchaseValue
+    } else {
+      firstValue = first.purchaseDate
+      secondValue = second.purchaseDate
+    }
+
+    if (firstValue === secondValue) {
+      return first.name.localeCompare(second.name)
+    }
+
+    if (sortBy === 'purchase_date' && (!firstValue || !secondValue)) {
+      return !firstValue ? 1 : -1
+    }
+
+    const comparison = firstValue < secondValue ? -1 : 1
+    return sortDirection === 'asc' ? comparison : -comparison
+  }
+  const sortedEntries = [
+    ...visibleLots.map(({ lot, items: lotItems }) => ({
+      type: 'lot',
+      key: lot.id,
+      name: lot.name,
+      purchaseDate: getLotPurchaseDate(lot, lotItems),
+      purchaseValue: getLotPurchaseValue(lot, lotItems),
+      lot,
+      items: lotItems,
+    })),
+    ...standaloneItems.map((item) => ({
+      type: 'item',
+      key: item.id,
+      name: item.name,
+      purchaseDate: item.purchase_date ?? '',
+      purchaseValue: Number(item.purchase_price || 0),
+      item,
+    })),
+  ].sort(compareEntries)
+  const sortDirectionLabel = sortBy === 'purchase_date'
+    ? (sortDirection === 'asc' ? 'Oldest first' : 'Newest first')
+    : sortBy === 'purchase_price'
+      ? (sortDirection === 'asc' ? 'Lowest first' : 'Highest first')
+      : (sortDirection === 'asc' ? 'A-Z' : 'Z-A')
   return (
     <>
-      <div className="page-heading"><div><p className="eyebrow">Inventory</p><h2>Know what you own. Know what it earns.</h2><p className="topbar__subtitle">Track every item from purchase to sale, with your listing workflow close at hand.</p></div><div className="page-heading__actions"><button type="button" className="button button--ghost button--large" onClick={onCreateLot}>+ Add lot</button><button type="button" className="button button--primary button--large" onClick={onCreate}>+ Add item</button></div></div>
+      <div className="page-heading"><div><p className="eyebrow">Inventory</p><h2>Know what you own. Know what it earns.</h2><p className="topbar__subtitle">Track every item from purchase to sale, with your listing workflow close at hand.</p></div><div className="page-heading__actions"><button type="button" className="button button--ghost button--large" onClick={onCreateShipment}>+ Add shipment</button><button type="button" className="button button--ghost button--large" onClick={onCreateLot}>+ Add lot</button><button type="button" className="button button--primary button--large" onClick={onCreate}>+ Add item</button></div></div>
       <section className="stats-row stats-row--inventory">
         <div className="stat-card"><span>Items</span><strong>{items.length}</strong><small>{stockItems.length} in stock</small></div>
         <div className="stat-card"><span>Purchase value</span><strong>{formatMoney(totalPurchase)}</strong><small>All recorded items</small></div>
@@ -1279,9 +1508,9 @@ function InventoryPage({ items, lots, templates, onCreate, onCreateLot, onEdit, 
         <div className="stat-card"><span>Realised sales</span><strong>{formatMoney(realisedSales)}</strong><small>{soldItems.length} sold</small></div>
         <div className="stat-card"><span>Realised ROI</span><strong>{realisedRoi === null ? '—' : `${realisedRoi.toFixed(1)}%`}</strong><small>{formatMoney(realisedProfit)} profit</small></div>
       </section>
-      <section className="inventory-toolbar"><div className="inventory-filters" role="group" aria-label="Filter inventory"><button type="button" className={`filter-button ${filter === 'all' ? 'filter-button--active' : ''}`} onClick={() => setFilter('all')}>All <span>{items.length}</span></button><button type="button" className={`filter-button ${filter === 'in_stock' ? 'filter-button--active' : ''}`} onClick={() => setFilter('in_stock')}>In stock</button><button type="button" className={`filter-button ${filter === 'to_list' ? 'filter-button--active' : ''}`} onClick={() => setFilter('to_list')}>To list</button><button type="button" className={`filter-button ${filter === 'listed' ? 'filter-button--active' : ''}`} onClick={() => setFilter('listed')}>Listed</button><button type="button" className={`filter-button ${filter === 'sold' ? 'filter-button--active' : ''}`} onClick={() => setFilter('sold')}>Sold</button></div><input className="inventory-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search inventory..." aria-label="Search inventory" /></section>
-      {lots.length > 0 ? <section className="lots-list"><div className="section-label"><span>Lots</span><small>{lots.length} lot{lots.length === 1 ? '' : 's'}</small></div>{lots.map((lot) => <LotSectionV2 key={lot.id} lot={lot} items={items.filter((item) => item.lot_id === lot.id)} templates={templates} onDelete={onDeleteLot} onEdit={onEdit} onEditLot={onEditLot} onDuplicate={onDuplicate} onGenerateLot={onGenerateLot} />)}</section> : null}
-      {visibleItems.length > 0 ? <div className="inventory-table-wrap"><table className="inventory-table"><thead><tr><th>Name</th><th>Status</th><th>Purchase</th><th>Target sale</th><th>Sale</th><th>Profit</th><th>ROI</th><th>Type</th><th>Platforms</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{visibleItems.map((item) => { const profit = getItemProfit(item); const roi = getItemRoi(item); const linkedTemplate = templates.find((template) => template.id === item.template_id); return <tr key={item.id}><td><strong>{item.name}</strong><small>{item.purchase_date || 'No purchase date'}</small></td><td><span className={`status-badge status-badge--${item.status}`}>{item.status.replace('_', ' ')}</span></td><td>{formatMoney(item.purchase_price)}</td><td>{item.target_sale_price === null ? '—' : formatMoney(item.target_sale_price)}</td><td>{item.sale_price === null ? '—' : formatMoney(item.sale_price)}</td><td className={profit !== null && profit < 0 ? 'value-negative' : 'value-positive'}>{profit === null ? '—' : formatMoney(profit)}</td><td className={roi !== null && roi < 0 ? 'value-negative' : 'value-positive'}>{roi === null ? '—' : `${roi.toFixed(1)}%`}</td><td>{item.item_type || '—'}</td><td>{getItemPlatforms(item).join(', ') || '—'}</td><td><div className="table-actions">{linkedTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerate(item, linkedTemplate)}>Generate</button> : null}<button type="button" className="button button--ghost" onClick={() => onEdit(item)}>Edit</button><button type="button" className="button button--ghost" onClick={() => onDuplicate(item)}>Duplicate</button><button type="button" className="button button--danger" onClick={() => onDelete(item.id)}>Delete</button></div></td></tr> })}</tbody></table></div> : <section className="empty-state"><h2>{items.length === 0 ? 'Your inventory is empty' : 'No items match this view'}</h2><p>{items.length === 0 ? 'Add your first item to start tracking stock and profitability.' : 'Try another filter or search term.'}</p>{items.length === 0 ? <button type="button" className="button button--primary" onClick={onCreate}>Add your first item</button> : null}</section>}
+      <section className="inventory-toolbar"><div className="inventory-filters" role="group" aria-label="Filter inventory"><button type="button" className={`filter-button ${filter === 'all' ? 'filter-button--active' : ''}`} onClick={() => setFilter('all')}>All <span>{items.length}</span></button><button type="button" className={`filter-button ${filter === 'in_transit' ? 'filter-button--active' : ''}`} onClick={() => setFilter('in_transit')}>In transit</button><button type="button" className={`filter-button ${filter === 'in_stock' ? 'filter-button--active' : ''}`} onClick={() => setFilter('in_stock')}>In stock</button><button type="button" className={`filter-button ${filter === 'to_list' ? 'filter-button--active' : ''}`} onClick={() => setFilter('to_list')}>To list</button><button type="button" className={`filter-button ${filter === 'listed' ? 'filter-button--active' : ''}`} onClick={() => setFilter('listed')}>Listed</button><button type="button" className={`filter-button ${filter === 'sold' ? 'filter-button--active' : ''}`} onClick={() => setFilter('sold')}>Sold</button></div><div className="inventory-toolbar__controls"><label><span>Sort by</span><select value={sortBy} onChange={(event) => setSortBy(event.target.value)}><option value="purchase_date">Purchase date</option><option value="purchase_price">Purchase price</option><option value="name">Name</option></select></label><button type="button" className="filter-button" onClick={() => setSortDirection((current) => current === 'asc' ? 'desc' : 'asc')} aria-label={`Sort ${sortDirection === 'asc' ? 'descending' : 'ascending'}`}>{sortDirectionLabel}</button><input className="inventory-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search inventory..." aria-label="Search inventory" /></div></section>
+      {shipments.length > 0 ? <section className="shipment-history"><div className="section-label"><span>Shipments</span><small>{shipments.length} recorded</small></div>{shipments.map((shipment) => <article className="shipment-history__row" key={shipment.id}><div><strong>{shipment.name}</strong><small>{shipment.shipment_date} · {allocations.filter((allocation) => allocation.shipment_id === shipment.id).length} item lines</small></div><span>{formatMoney(getShipmentTotal(shipment))} allocated</span><button type="button" className="button button--danger" onClick={() => onDeleteShipment(shipment.id)}>Delete</button></article>)}</section> : null}
+      {visibleCount > 0 ? <section className="inventory-tree">{sortedEntries.map((entry) => entry.type === 'lot' ? (() => { const lotNameMatches = query.trim() && entry.lot.name.toLowerCase().includes(query.trim().toLowerCase()); return <InventoryLotRow key={entry.key} lot={entry.lot} items={entry.items} matches={(item) => lotNameMatches ? (filter === 'all' || item.status === filter) : matchesItem(item)} templates={templates} onDelete={onDeleteLot} onEdit={onEdit} onEditLot={onEditLot} onDuplicate={onDuplicate} onGenerate={onGenerate} onGenerateLot={onGenerateLot} /> })() : (() => { const item = entry.item; const profit = getItemProfit(item); const roi = getItemRoi(item); const linkedTemplate = templates.find((template) => template.id === item.template_id); return <article className="inventory-tree__row inventory-tree__row--standalone" key={entry.key}><span className="inventory-tree__name"><strong>{item.name}</strong><small>{item.item_type || 'Uncategorised'} · {item.condition || 'Condition not set'}</small></span><span className={`status-badge status-badge--${item.status}`}>{item.status.replace('_', ' ')}</span><span>{formatMoney(item.purchase_price)} purchase</span><span>{item.target_sale_price === null ? '—' : formatMoney(item.target_sale_price)} target</span><span className={roi !== null && roi < 0 ? 'value-negative' : 'value-positive'}>ROI {roi === null ? '—' : `${roi.toFixed(1)}%`}</span><span className="table-actions">{linkedTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerate(item, linkedTemplate)}>Generate</button> : null}<button type="button" className="button button--ghost" onClick={() => onEdit(item)}>Edit</button><button type="button" className="button button--ghost" onClick={() => onDuplicate(item)}>Duplicate</button><button type="button" className="button button--danger" onClick={() => onDelete(item.id)}>Delete</button></span></article> })())}</section> : <section className="empty-state"><h2>{items.length === 0 ? 'Your inventory is empty' : 'No items match this view'}</h2><p>{items.length === 0 ? 'Add your first item to start tracking stock and profitability.' : 'Try another filter or search term.'}</p>{items.length === 0 ? <button type="button" className="button button--primary" onClick={onCreate}>Add your first item</button> : null}</section>}
     </>
   )
 }
@@ -1292,11 +1521,14 @@ function App() {
   const [crossVariables, setCrossVariables] = useState([])
   const [inventoryItems, setInventoryItems] = useState([])
   const [inventoryLots, setInventoryLots] = useState([])
+  const [inventoryShipments, setInventoryShipments] = useState([])
+  const [shipmentAllocations, setShipmentAllocations] = useState([])
   const [activeView, setActiveView] = useState('templates')
   const [editorTemplate, setEditorTemplate] = useState(null)
   const [generatorTemplate, setGeneratorTemplate] = useState(null)
   const [inventoryEditor, setInventoryEditor] = useState(null)
   const [lotEditor, setLotEditor] = useState(null)
+  const [shipmentEditor, setShipmentEditor] = useState(false)
   const [showAccountPanel, setShowAccountPanel] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const [activeLegalPage, setActiveLegalPage] = useState(null)
@@ -1333,6 +1565,8 @@ function App() {
       setCrossVariables([])
       setInventoryItems([])
       setInventoryLots([])
+      setInventoryShipments([])
+      setShipmentAllocations([])
       return
     }
 
@@ -1400,6 +1634,27 @@ function App() {
     }
 
     loadInventoryLots()
+
+    const loadShipments = async () => {
+      const { data, error: loadError } = await supabase.from('inventory_shipments').select('*').order('shipment_date', { ascending: false })
+      if (loadError) {
+        setError(loadError.message)
+        return
+      }
+      setInventoryShipments(data ?? [])
+    }
+
+    const loadShipmentAllocations = async () => {
+      const { data, error: loadError } = await supabase.from('inventory_shipment_allocations').select('*')
+      if (loadError) {
+        setError(loadError.message)
+        return
+      }
+      setShipmentAllocations(data ?? [])
+    }
+
+    loadShipments()
+    loadShipmentAllocations()
   }, [session])
 
   const handleSaveTemplate = async (draft) => {
@@ -1616,6 +1871,117 @@ function App() {
     setInventoryItems((current) => current.filter((item) => item.lot_id !== id))
   }
 
+  const handleSaveShipment = async (draft) => {
+    if (!session?.user || !draft.name || !draft.allocations?.length) {
+      return
+    }
+
+    const duplicateItems = draft.allocations.filter((allocation) => shipmentAllocations.some((existing) => existing.item_id === allocation.item_id))
+    if (duplicateItems.length && !window.confirm('Some selected items are already assigned to a shipment. Add these costs again?')) {
+      return
+    }
+
+    const { allocations: draftAllocations, ...shipmentDraft } = draft
+    const { data: shipment, error: shipmentError } = await supabase
+      .from('inventory_shipments')
+      .insert({ ...shipmentDraft, user_id: session.user.id })
+      .select()
+      .single()
+
+    if (shipmentError) {
+      setError(shipmentError.message)
+      return
+    }
+
+    const rows = draftAllocations.map((allocation) => ({ ...allocation, shipment_id: shipment.id }))
+    const { error: allocationError } = await supabase.from('inventory_shipment_allocations').insert(rows)
+    if (allocationError) {
+      await supabase.from('inventory_shipments').delete().eq('id', shipment.id)
+      setError(allocationError.message)
+      return
+    }
+
+    const updatedItems = []
+    for (const item of inventoryItems) {
+      const newAllocation = draftAllocations.find((allocation) => allocation.item_id === item.id)
+      if (!newAllocation) continue
+      const existingCost = Number(item.inbound_cost || 0)
+      const inboundCost = existingCost + Number(newAllocation.allocated_cost || 0)
+      const basePurchasePrice = getItemBasePurchasePrice(item)
+      const purchasePrice = Number((basePurchasePrice + inboundCost).toFixed(2))
+      const { data, error: itemError } = await supabase.from('inventory_items').update({ inbound_cost: inboundCost, purchase_price: purchasePrice }).eq('id', item.id).select().single()
+      if (itemError) {
+        setError(itemError.message)
+        return
+      }
+      updatedItems.push(data)
+    }
+
+    const affectedLotIds = [...new Set(updatedItems.map((item) => item.lot_id).filter(Boolean))]
+    const updatedLots = []
+    for (const lotId of affectedLotIds) {
+      const lotItems = inventoryItems.map((item) => updatedItems.find((updated) => updated.id === item.id) ?? item).filter((item) => item.lot_id === lotId)
+      const purchasePrice = Number(lotItems.reduce((total, item) => total + Number(item.purchase_price || 0), 0).toFixed(2))
+      const { data, error: lotError } = await supabase.from('inventory_lots').update({ purchase_price: purchasePrice }).eq('id', lotId).select().single()
+      if (lotError) {
+        setError(lotError.message)
+        return
+      }
+      updatedLots.push(data)
+    }
+
+    setInventoryItems((current) => current.map((item) => updatedItems.find((updated) => updated.id === item.id) ?? item))
+    setInventoryLots((current) => current.map((lot) => updatedLots.find((updated) => updated.id === lot.id) ?? lot))
+    setInventoryShipments((current) => [shipment, ...current])
+    setShipmentAllocations((current) => [...rows, ...current])
+    setShipmentEditor(null)
+  }
+
+  const handleDeleteShipment = async (shipmentId) => {
+    const shipment = inventoryShipments.find((entry) => entry.id === shipmentId)
+    if (!shipment || !window.confirm(`Delete "${shipment.name}" and remove its allocated costs?`)) {
+      return
+    }
+
+    const shipmentRows = shipmentAllocations.filter((allocation) => allocation.shipment_id === shipmentId)
+    const { error: deleteError } = await supabase.from('inventory_shipments').delete().eq('id', shipmentId)
+    if (deleteError) {
+      setError(deleteError.message)
+      return
+    }
+
+    const updatedItems = []
+    for (const item of inventoryItems) {
+      const removedCost = shipmentRows.filter((row) => row.item_id === item.id).reduce((total, row) => total + Number(row.allocated_cost || 0), 0)
+      if (!removedCost) continue
+      const inboundCost = Math.max(0, Number((Number(item.inbound_cost || 0) - removedCost).toFixed(2)))
+      const purchasePrice = Number((getItemBasePurchasePrice(item) + inboundCost).toFixed(2))
+      const { data, error: itemError } = await supabase.from('inventory_items').update({ inbound_cost: inboundCost, purchase_price: purchasePrice }).eq('id', item.id).select().single()
+      if (itemError) {
+        setError(itemError.message)
+        return
+      }
+      updatedItems.push(data)
+    }
+
+    setInventoryItems((current) => current.map((item) => updatedItems.find((updated) => updated.id === item.id) ?? item))
+    const affectedLotIds = [...new Set(updatedItems.map((item) => item.lot_id).filter(Boolean))]
+    const recalculatedLotPrices = {}
+    for (const lotId of affectedLotIds) {
+      const lotItems = inventoryItems.map((item) => updatedItems.find((updated) => updated.id === item.id) ?? item).filter((item) => item.lot_id === lotId)
+      const purchasePrice = Number(lotItems.reduce((total, item) => total + Number(item.purchase_price || 0), 0).toFixed(2))
+      recalculatedLotPrices[lotId] = purchasePrice
+      const { error: lotError } = await supabase.from('inventory_lots').update({ purchase_price: purchasePrice }).eq('id', lotId)
+      if (lotError) {
+        setError(lotError.message)
+        return
+      }
+    }
+    setInventoryLots((current) => current.map((lot) => recalculatedLotPrices[lot.id] === undefined ? lot : { ...lot, purchase_price: recalculatedLotPrices[lot.id] }))
+    setInventoryShipments((current) => current.filter((entry) => entry.id !== shipmentId))
+    setShipmentAllocations((current) => current.filter((allocation) => allocation.shipment_id !== shipmentId))
+  }
+
   if (isLoading) {
     return <main className="auth-shell"><p>Loading your workspace...</p></main>
   }
@@ -1733,7 +2099,7 @@ function App() {
             </button>
           </section>
         )}
-        </> : <InventoryPage items={inventoryItems} lots={inventoryLots} templates={templates} onCreate={() => setInventoryEditor({})} onCreateLot={() => setLotEditor({})} onEdit={setInventoryEditor} onEditLot={setLotEditor} onDelete={handleDeleteInventoryItem} onDuplicate={handleDuplicateInventoryItem} onDeleteLot={handleDeleteInventoryLot} onGenerate={(item, template) => { setInventoryEditor(null); setGeneratorTemplate({ template, initialValues: getGeneratorValues(item, extractVariables(`${template.title ?? ''}\n${template.content}`)) }) }} onGenerateLot={handleGenerateLot} />}
+        </> : <InventoryPage items={inventoryItems} lots={inventoryLots} templates={templates} shipments={inventoryShipments} allocations={shipmentAllocations} onCreate={() => setInventoryEditor({})} onCreateLot={() => setLotEditor({})} onCreateShipment={() => setShipmentEditor(true)} onEdit={setInventoryEditor} onEditLot={setLotEditor} onDelete={handleDeleteInventoryItem} onDuplicate={handleDuplicateInventoryItem} onDeleteLot={handleDeleteInventoryLot} onDeleteShipment={handleDeleteShipment} onGenerate={(item, template) => { setInventoryEditor(null); setGeneratorTemplate({ template, initialValues: getGeneratorValues(item, extractVariables(`${template.title ?? ''}\n${template.content}`)) }) }} onGenerateLot={handleGenerateLot} />}
       </main>
 
       {editorTemplate ? (
@@ -1767,6 +2133,12 @@ function App() {
       {lotEditor ? (
         <Modal title={lotEditor.id ? 'Edit inventory lot' : 'Create inventory lot'} subtitle="Group several items while keeping their individual financial details." onClose={() => setLotEditor(null)} wide>
           {lotEditor.id ? <LotSettingsForm lot={lotEditor} templates={templates} onSave={handleUpdateInventoryLot} onCancel={() => setLotEditor(null)} /> : <LotFormV2 templates={templates} onSave={handleSaveInventoryLot} onCancel={() => setLotEditor(null)} />}
+        </Modal>
+      ) : null}
+
+      {shipmentEditor ? (
+        <Modal title="Add shipment" subtitle="Allocate delivery, VAT and other inbound costs across physical inventory units." onClose={() => setShipmentEditor(false)} wide>
+          <ShipmentForm items={inventoryItems} lots={inventoryLots} shipments={inventoryShipments} allocations={shipmentAllocations} onSave={handleSaveShipment} onCancel={() => setShipmentEditor(false)} />
         </Modal>
       ) : null}
 

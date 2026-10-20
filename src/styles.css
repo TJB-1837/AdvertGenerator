@@ -242,6 +242,28 @@ button {
   border-radius: 12px;
 }
 
+.inventory-toolbar__controls {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inventory-toolbar__controls label {
+  display: grid;
+  gap: 4px;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.inventory-toolbar__controls select {
+  min-width: 150px;
+  padding: 9px 12px;
+  border-radius: 10px;
+}
+
 .inventory-table-wrap {
   overflow-x: auto;
   border: 1px solid rgba(148, 163, 184, 0.16);
@@ -304,6 +326,11 @@ button {
 .status-badge--to_list {
   color: #fde68a;
   background: rgba(161, 98, 7, 0.28);
+}
+
+.status-badge--in_transit {
+  color: #ddd6fe;
+  background: rgba(109, 40, 217, 0.28);
 }
 
 .value-positive {
@@ -1175,6 +1202,18 @@ textarea {
     flex-direction: column;
   }
 
+  .shipment-item-row {
+    grid-template-columns: 1fr 80px;
+  }
+
+  .shipment-item-row > :nth-child(n + 3) {
+    grid-column: 1 / -1;
+  }
+
+  .shipment-history__row {
+    grid-template-columns: 1fr auto;
+  }
+
   .template-card__footer {
     flex-direction: column;
     align-items: stretch;
@@ -1249,6 +1288,223 @@ textarea {
   display: grid;
   gap: 10px;
   margin-bottom: 24px;
+}
+
+.inventory-tree {
+  display: grid;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.inventory-tree__lot {
+  overflow: hidden;
+  border: 1px solid rgba(125, 211, 252, 0.16);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.inventory-tree__row {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  min-width: 920px;
+  padding: 12px 14px;
+  font-size: 0.84rem;
+}
+
+.inventory-tree__row--lot {
+  grid-template-columns: minmax(210px, 1.4fr) minmax(280px, 1fr) auto;
+  cursor: pointer;
+  list-style: none;
+}
+
+.inventory-tree__row--lot::-webkit-details-marker {
+  display: none;
+}
+
+.inventory-tree__row--lot::before {
+  position: absolute;
+  margin-left: -4px;
+  color: #7dd3fc;
+  content: '▸';
+  transition: transform 160ms ease;
+}
+
+.inventory-tree__lot[open] .inventory-tree__row--lot::before {
+  transform: rotate(90deg);
+}
+
+.inventory-tree__row--lot .inventory-tree__name {
+  padding-left: 20px;
+}
+
+.inventory-tree__name strong,
+.inventory-tree__name small {
+  display: block;
+}
+
+.inventory-tree__name small {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 0.76rem;
+}
+
+.inventory-tree__metrics {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  color: #bae6fd;
+}
+
+.inventory-pill {
+  display: inline-block;
+  padding: 4px 7px;
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 999px;
+  color: #bae6fd;
+  background: rgba(14, 116, 144, 0.2);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.inventory-tree__row--item {
+  grid-template-columns: minmax(210px, 1.4fr) repeat(5, minmax(90px, auto)) minmax(260px, auto);
+  margin: 0 8px 0 28px;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.inventory-tree__row--standalone {
+  grid-template-columns: minmax(210px, 1.5fr) minmax(100px, auto) repeat(3, minmax(90px, auto)) minmax(260px, auto);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.status-badge--compact {
+  padding: 4px 7px;
+}
+
+.inventory-tree .table-actions {
+  justify-content: flex-end;
+}
+
+.inventory-tree .table-actions .button {
+  padding: 7px 9px;
+}
+
+.shipment-fieldset {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 16px;
+  background: rgba(14, 116, 144, 0.08);
+}
+
+.shipment-fieldset legend {
+  padding: 0 6px;
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+.shipment-selection {
+  display: grid;
+  gap: 8px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.shipment-group {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+}
+
+.shipment-item-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 80px auto 90px 110px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(2, 6, 23, 0.3);
+  font-size: 0.82rem;
+}
+
+.shipment-item-row strong,
+.shipment-item-row small {
+  display: block;
+}
+
+.shipment-item-row small,
+.helper-text {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.shipment-item-row input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  background: rgba(2, 6, 23, 0.58);
+}
+
+.shipment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  color: #bae6fd;
+  background: rgba(14, 116, 144, 0.16);
+}
+
+.shipment-history {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.shipment-history__row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.shipment-history__row strong,
+.shipment-history__row small {
+  display: block;
+}
+
+.shipment-history__row small {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-label input {
+  width: auto;
 }
 
 .section-label,
