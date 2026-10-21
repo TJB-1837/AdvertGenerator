@@ -254,7 +254,7 @@ function AuthPanel({ onAuthenticated, onBack }) {
   )
 }
 
-function AccountPanel({ session, onClose, onDeleted }) {
+function AccountPanel({ session, onClose, onDeleted, onOpenFaq, fullPage = false }) {
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -310,19 +310,17 @@ function AccountPanel({ session, onClose, onDeleted }) {
     onDeleted()
   }
 
-  return (
-    <Modal
-      title="Account settings"
-      subtitle={`Signed in as ${session.user.email}`}
-      onClose={onClose}
-    >
-      <div className="account-panel">
+  const accountContent = (
+    <div className="account-panel">
+      <div className="account-page__intro">
+        <p className="eyebrow">Your account</p>
+        <h2>Account settings</h2>
+        <p>Manage your sign-in details and the data connected to your Adrafteo workspace.</p>
+        <span>{session.user.email}</span>
+      </div>
         <section className="account-section">
           <div>
             <h3>Change password</h3>
-            <button type="button" className="button button--ghost" onClick={onOpenFaq}>
-              FAQ
-            </button>
             <p>Choose a new password for your Adrafteo account.</p>
           </div>
           <form className="form" onSubmit={handlePasswordChange}>
@@ -356,6 +354,30 @@ function AccountPanel({ session, onClose, onDeleted }) {
         {error ? <p className="error-message">{error}</p> : null}
         {message ? <p className="status-message">{message}</p> : null}
       </div>
+  )
+
+  if (fullPage) {
+    return (
+      <main className="account-page">
+        <header className="account-page__header">
+          <div className="topbar__brand">
+            <img className="brand-mark" src="/logo-adrafteo-plume-blanche.png" alt="" aria-hidden="true" />
+            <strong>adrafteo</strong>
+          </div>
+          <button type="button" className="button button--ghost" onClick={onClose}>Back to workspace</button>
+        </header>
+        {accountContent}
+      </main>
+    )
+  }
+
+  return (
+    <Modal
+      title="Account settings"
+      subtitle={`Signed in as ${session.user.email}`}
+      onClose={onClose}
+    >
+      {accountContent}
     </Modal>
   )
 }
@@ -1860,11 +1882,11 @@ function App() {
   const [inventoryEditor, setInventoryEditor] = useState(null)
   const [lotEditor, setLotEditor] = useState(null)
   const [shipmentEditor, setShipmentEditor] = useState(false)
-  const [showAccountPanel, setShowAccountPanel] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const [activeLegalPage, setActiveLegalPage] = useState(null)
   const [showFaqPage, setShowFaqPage] = useState(false)
   const [showPricingPage, setShowPricingPage] = useState(false)
+  const [showAccountPage, setShowAccountPage] = useState(false)
   const [showCrossVariables, setShowCrossVariables] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -2374,6 +2396,18 @@ function App() {
     )
   }
 
+  if (showAccountPage && session) {
+    return (
+      <AccountPanel
+        session={session}
+        fullPage
+        onClose={() => setShowAccountPage(false)}
+        onDeleted={() => setShowAccountPage(false)}
+        onOpenFaq={() => setShowFaqPage(true)}
+      />
+    )
+  }
+
   if (!session) {
     return <LandingPage onOpenLegalPage={setActiveLegalPage} onOpenFaq={() => setShowFaqPage(true)} onOpenPricing={() => { setActiveLegalPage(null); setShowFaqPage(false); setShowPricingPage(true) }} />
   }
@@ -2424,7 +2458,7 @@ function App() {
           <button type="button" className="button button--ghost" onClick={() => supabase.auth.signOut()}>
             Sign out
           </button>
-          <button type="button" className="button button--ghost" onClick={() => setShowAccountPanel(true)}>
+          <button type="button" className="button button--ghost" onClick={() => setShowAccountPage(true)}>
             Account
           </button>
           {activeView === 'inventory' ? (
@@ -2566,14 +2600,6 @@ function App() {
         <Modal title="Add shipment" subtitle="Allocate delivery, VAT and other inbound costs across physical inventory units." onClose={() => setShipmentEditor(false)} wide>
           <ShipmentForm items={inventoryItems} lots={inventoryLots} shipments={inventoryShipments} allocations={shipmentAllocations} onSave={handleSaveShipment} onCancel={() => setShipmentEditor(false)} />
         </Modal>
-      ) : null}
-
-      {showAccountPanel ? (
-        <AccountPanel
-          session={session}
-          onClose={() => setShowAccountPanel(false)}
-          onDeleted={() => setShowAccountPanel(false)}
-        />
       ) : null}
 
       {showFeedback ? <FeedbackPanel onClose={() => setShowFeedback(false)} /> : null}

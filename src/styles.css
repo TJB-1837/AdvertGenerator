@@ -976,31 +976,6 @@ textarea {
   font-weight: 800;
 }
 
-.landing-proof {
-  padding: 24px 0 72px;
-  border-top: 1px solid rgba(148, 163, 184, 0.16);
-  color: #64748b;
-  text-align: center;
-}
-
-.landing-proof p {
-  margin: 0 0 20px;
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.landing-proof div {
-  display: flex;
-  justify-content: center;
-  gap: clamp(20px, 7vw, 80px);
-  flex-wrap: wrap;
-  color: #cbd5e1;
-  font-family: Georgia, serif;
-  font-size: 1.2rem;
-  font-style: italic;
-}
-
 .landing-benefits {
   padding: 40px 0 100px;
 }
@@ -3251,6 +3226,277 @@ select {
   color: #b0413e;
 }
 
+.account-page {
+  width: min(960px, calc(100vw - 32px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 24px 0 56px;
+  color: #333745;
+}
+
+.account-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #e4dce0;
+}
+
+.account-page__header .topbar__brand {
+  margin: 0;
+}
+
+.account-page > .account-panel {
+  max-width: 760px;
+  margin: 54px auto 0;
+}
+
+.account-page__intro {
+  margin-bottom: 30px;
+}
+
+.account-page__intro h2 {
+  margin: 0;
+  color: #333745;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+
+.account-page__intro p:not(.eyebrow) {
+  max-width: 54ch;
+  margin: 12px 0 10px;
+  color: #747887;
+}
+
+.account-page__intro > span {
+  color: #b0413e;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.74rem;
+}
+
+.account-page .account-section {
+  padding: 24px 0;
+  border-top: 1px solid #e4dce0;
+}
+
+.account-page .account-section h3 {
+  color: #333745;
+  font-size: 1.05rem;
+}
+
+.account-page .account-section p {
+  color: #747887;
+}
+
+.account-page .account-section--danger {
+  border-top-color: #efc8c6;
+}
+
+.account-page .account-section--danger h3,
+.account-page .account-section--danger p {
+  color: #b0413e;
+}
+
+@media (max-width: 560px) {
+  .account-page {
+    width: min(100% - 20px, 960px);
+    padding-top: 16px;
+  }
+
+  .account-page__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* Account page final light layout. */
+.account-page {
+  width: min(1120px, calc(100vw - 48px));
+  background: #f5edf0;
+}
+
+.account-page > .account-panel {
+  width: 100%;
+  max-width: 960px;
+  margin: 48px auto 0;
+}
+
+.account-page .account-section {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(300px, 1.2fr);
+  align-items: start;
+  gap: 32px;
+  padding: 28px 30px;
+  border: 1px solid #e6dfe2;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(51, 55, 69, 0.05);
+}
+
+.account-page .account-section .form {
+  gap: 14px;
+}
+
+.account-page .account-section .form label {
+  gap: 7px;
+}
+
+.account-page .account-section .form label span {
+  color: #333745;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.account-page .account-section--danger {
+  border-color: #efc8c6;
+  background: #fffafa;
+  box-shadow: none;
+}
+
+.account-page .account-section--danger > .button {
+  align-self: center;
+  justify-self: end;
+}
+
+.account-page .error-message,
+.account-page .status-message {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.account-page .error-message {
+  color: #b0413e;
+}
+
+.account-page .status-message {
+  color: #6a994e;
+}
+
+@media (max-width: 720px) {
+  .account-page {
+    width: min(100% - 20px, 1120px);
+  }
+
+  .account-page > .account-panel {
+    margin-top: 32px;
+  }
+
+  .account-page .account-section {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 22px;
+  }
+
+  .account-page .account-section--danger > .button {
+    justify-self: start;
+  }
+}
+
+/* Feedback modal final light layout. */
+.modal-backdrop {
+  background: rgba(51, 55, 69, 0.34);
+  backdrop-filter: blur(6px);
+}
+
+.modal {
+  width: min(720px, calc(100vw - 32px));
+  padding: 30px;
+  border: 1px solid #e6dfe2;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(51, 55, 69, 0.16);
+}
+
+.modal__header h2 {
+  color: #333745;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+}
+
+.modal__header p {
+  margin: 8px 0 0;
+  color: #747887;
+}
+
+.modal .icon-button {
+  width: 32px;
+  height: 32px;
+  color: #333745;
+  background: #f5edf0;
+  font-size: 1.2rem;
+}
+
+.feedback-form {
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.feedback-form label {
+  gap: 7px;
+}
+
+.feedback-form label span {
+  color: #333745;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.feedback-form input,
+.feedback-form textarea {
+  border: 1px solid #e6dfe2;
+  border-radius: 9px;
+  color: #333745;
+  background: #fff;
+}
+
+.feedback-form textarea {
+  min-height: 170px;
+  resize: vertical;
+}
+
+.feedback-form .form__actions {
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #eee7e9;
+}
+
+.feedback-form .status-message,
+.feedback-form .error-message {
+  margin: 0 auto 0 0;
+  font-size: 0.78rem;
+}
+
+.feedback-form .status-message {
+  color: #6a994e;
+}
+
+.feedback-form .error-message {
+  color: #b0413e;
+}
+
+@media (max-width: 560px) {
+  .modal {
+    width: min(100%, calc(100vw - 20px));
+    padding: 22px;
+  }
+
+  .feedback-form .form__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .feedback-form .form__actions .button {
+    width: 100%;
+  }
+}
+
 @media (max-width: 860px) {
   .topbar {
     grid-template-columns: auto 1fr;
@@ -3932,15 +4178,6 @@ select {
   background: #f2f8ef;
 }
 
-.landing-proof {
-  border-top-color: #e4dce0;
-  color: #747887;
-}
-
-.landing-proof div {
-  color: #a3a6ae;
-}
-
 .landing-benefits {
   border-top: 1px solid #e4dce0;
 }
@@ -4024,9 +4261,7 @@ select {
   white-space: pre-wrap;
 }
 
-.landing-hero__copy h1 {
-  max-width: 11ch;
-}
+
 
 /* Landing page reference-inspired composition. */
 .landing-page {
