@@ -41,6 +41,8 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Light-themed sign-in and account creation screen aligned with the Adrafteo palette
 - Light-themed FAQ, legal notice, privacy policy, and terms pages aligned with the public and workspace UI
 - Public Pricing page with a two-column Free plan feature comparison, linked from public and authenticated footers
+- Reworked the public landing page to closely follow the provided mockup's dense product-first structure: centered hero, three-column template/variables/output preview, workflow metrics, capability panels, three-step flow, factual beta positioning, FAQ content, and time-saving copy without unsupported automation or sales claims
+- Added the provided Adrafteo logo variants to the public assets and integrated the white plume mark into the landing navigation, product preview, authenticated workspace header, and favicon
 - Refined the authenticated Cross variables panel with clearer reusable-value guidance, structured variable rows, an empty state, and responsive layout
 - Adrafteo branding and favicon
 - Email/password sign-up and sign-in through Supabase
