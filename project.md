@@ -38,6 +38,15 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 ## Implemented
 
 - Landing page for unauthenticated visitors
+- Light-themed sign-in and account creation screen aligned with the Adrafteo palette
+- Dedicated authenticated Account page with workspace return navigation, password change, and double-confirmed account deletion
+- Restyled the Feedback modal to match the current light design with a wider white surface, clearer fields, readable feedback area, and responsive actions
+- Light-themed FAQ, legal notice, privacy policy, and terms pages aligned with the public and workspace UI
+- Public Pricing page with a two-column Free plan feature comparison, linked from public and authenticated footers
+- Reworked the public landing page to closely follow the provided mockup's dense product-first structure: centered hero, three-column template/variables/output preview, workflow metrics, capability panels, three-step flow, factual beta positioning, FAQ content, and time-saving copy without unsupported automation or sales claims
+- Added the provided Adrafteo logo variants to the public assets and integrated the white plume mark into the landing navigation, product preview, authenticated workspace header, and favicon
+- Cleaned unused landing-page CSS for removed sections and redundant overrides while preserving the existing legacy component foundations pending a broader visual regression pass
+- Refined the authenticated Cross variables panel with clearer reusable-value guidance, structured variable rows, an empty state, and responsive layout
 - Adrafteo branding and favicon
 - Email/password sign-up and sign-in through Supabase
 - Personal templates loaded from Supabase
@@ -61,6 +70,7 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Inventory now uses one compact folder-style list for standalone items and expandable lots, with lot/item sold-count and ROI pills that preserve item-based dashboard counts
 - Inventory lots and standalone items share one sortable stream and can be ordered by purchase date, purchase price, or name in ascending or descending order
 - Inventory items and lot sub-items support an `In transit` status; transit items remain visible and filterable but are excluded from the in-stock dashboard count
+- Lot summary rows mirror standalone item columns and alignment: status summary, purchase price, target price, sold value, ROI, Generate, Duplicate, Edit, and Delete actions, with matching `purchase` and `sold` labels
 - Lot creation automatically distributes the lot purchase and target sale prices across its sub-items, while preserving manual per-item overrides
 - Inventory items support physical quantities, base purchase prices, and separate inbound costs; existing items are migrated to quantity 1
 - Shipments can allocate store-to-forwarder delivery, forwarder-to-home delivery, monthly subscription, VAT, and additional fees across selected physical units using value-based, equal, or manual allocation
@@ -152,6 +162,22 @@ Configure the two `VITE_SUPABASE_*` variables in Vercel for Production, Preview,
 - No automated end-to-end tests yet.
 - No migration tooling; SQL files are currently run manually in Supabase.
 - SEO and GEO foundations are not implemented yet: metadata, Open Graph, robots.txt, sitemap.xml, JSON-LD, and SEO monitoring remain to be added. FAQ content is now available on the public landing page and a dedicated FAQ page.
+- Initial light workspace redesign started from the Adrafteo reference palette (`#B0413E`, `#FFCB47`, `#F5EDF0`, `#333745`, `#6A994E`): the authenticated Templates view now has a responsive light shell, branded navigation, search, and denser template cards while preserving Supabase data and actions.icated FAQ page.
+- Refined the Templates view toward a more editorial, ergonomic interface: workspace metrics are now presented as an inline summary rather than generic cards, while template cards remain intentionally retained; duplicate is now an explicit action beside edit.icated FAQ page.
+- Removed non-functional reference-only labels (`FEEDS`, `Personal`, and year-based template badges) and placed the real `Create template` action at the right of the Templates summary row.icated FAQ page.
+- Added a data-driven Overview workspace with inventory, template, marketplace, sales, profit, ROI, and recent activity summaries, using the existing Supabase-loaded records and responsive editorial sections instead of generic dashboard cards.icated FAQ page.
+- Corrected Overview stylesheet scoping so its desktop grid, spacing, metric columns, activity table, and responsive layout render consistently outside the legacy mobile media rules.icated FAQ page.
+- Added dependency-free Overview visualisations: a true two-row cash-flow bar chart comparing money spent with realised revenue followed by potential resale value, plus a horizontal inventory-status chart, all derived from current inventory records.icated FAQ page.
+- Overview is now the default authenticated workspace view so performance visualisations are immediately visible after sign-in; explicit final CSS overrides protect its layout from legacy stylesheet ordering.icated FAQ page.
+- Added final scoped overrides for the cash-flow bar elements so the two horizontal bars and stacked revenue segments remain visible despite legacy responsive CSS ordering.icated FAQ page.
+- Reworked the Inventory view into a light, dense registry layout: inline metrics, editorial filters, plain table-like lot/item rows, and restrained status treatments while preserving all inventory actions and data.icated FAQ page.
+- Completed the Inventory light-theme pass across the list itself, including lot summaries, nested item rows, standalone rows, pills, and row actions; no dark list surfaces remain in the workspace view.icated FAQ page.
+- Fixed the Inventory theme scope so its light selectors target the Inventory page itself rather than the public Landing wrapper; the heading, filters, rows, and actions now receive the intended light styles.icated FAQ page.
+- Aligned lot item rows with standalone inventory rows: identical name/status/purchase/target/ROI/action order, comparable row height, and shared status badge colors.icated FAQ page.
+- Differentiated Inventory status badges while retaining green for `Sold`: blue `In stock`, yellow `To list`, purple `Listed`, and orange `In transit`.icated FAQ page.
+- Added effective resale value to both standalone and lot item rows, positioned between target sale price and ROI.icated FAQ page.
+- Reworked the public Landing page into the same light Adrafteo visual system: clear typography, red/ochre/green accents, restrained product preview, editorial benefit/FAQ sections, and a lighter CTA/footer.icated FAQ page.
+- Added authenticated navigation to the public Landing page, with a `Workspace` return action so signed-in users can browse the marketing page without signing out.icated FAQ page.
 
 ## Next Priorities
 
