@@ -1746,7 +1746,7 @@ textarea {
 }
 
 .inventory-tree__row--lot {
-  grid-template-columns: minmax(210px, 1.4fr) minmax(280px, 1fr) auto;
+  grid-template-columns: minmax(210px, 1.4fr) minmax(150px, 1fr) repeat(4, minmax(90px, auto)) minmax(300px, auto);
   cursor: pointer;
   list-style: none;
 }
@@ -1788,6 +1788,13 @@ textarea {
   justify-content: flex-start;
   gap: 12px;
   color: #bae6fd;
+}
+
+.inventory-tree__lot-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
 }
 
 .inventory-pill {
@@ -3780,6 +3787,7 @@ select {
 
 .app-shell .inventory-page .inventory-tree__row--lot {
   background: #f8f5f6 !important;
+  grid-template-columns: minmax(210px, 1.5fr) minmax(100px, auto) repeat(4, minmax(90px, auto)) minmax(260px, auto);
 }
 
 .app-shell .inventory-page .inventory-tree__row--item {

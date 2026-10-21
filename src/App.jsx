@@ -65,12 +65,22 @@ function getLotMetrics(items) {
   const soldItems = items.filter((item) => item.status === 'sold')
   const soldPurchaseValue = soldItems.reduce((total, item) => total + Number(item.purchase_price || 0), 0)
   const realisedProfit = soldItems.reduce((total, item) => total + (getItemProfit(item) || 0), 0)
+  const soldValue = soldItems.reduce((total, item) => total + Number(item.sale_price || 0), 0)
+  const statuses = ['in_transit', 'in_stock', 'to_list', 'listed']
+    .filter((status) => items.some((item) => item.status === status))
+    .map((status) => ({ status, count: items.filter((item) => item.status === status).length }))
 
   return {
     soldCount: soldItems.length,
     itemCount: items.length,
+    soldValue,
+    statuses,
     roi: soldPurchaseValue > 0 ? (realisedProfit / soldPurchaseValue) * 100 : null,
   }
+}
+
+function getStatusLabel(status) {
+  return status.replace('_', ' ')
 }
 
 function allocateAmount(total, count) {
@@ -1484,7 +1494,7 @@ function LotSettingsForm({ lot, templates, onSave, onCancel }) {
   return <form className="form" onSubmit={handleSubmit}><label><span>Lot name</span><input value={form.name} onChange={(event) => updateField('name', event.target.value)} required /></label><label><span>Template</span><select value={form.template_id} onChange={(event) => updateField('template_id', event.target.value)}><option value="">No template</option>{templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select></label><div className="form-grid form-grid--wide"><label><span>Purchase date</span><input type="date" value={form.purchase_date} onChange={(event) => updateField('purchase_date', event.target.value)} /></label><label><span>Purchase price</span><input type="number" min="0" step="0.01" value={form.purchase_price} onChange={(event) => updateField('purchase_price', event.target.value)} required /></label><label><span>Target sale price</span><input type="number" min="0" step="0.01" value={form.target_sale_price} onChange={(event) => updateField('target_sale_price', event.target.value)} /></label><label><span>Sale date</span><input type="date" value={form.sale_date} onChange={(event) => updateField('sale_date', event.target.value)} /></label><label><span>Sale price</span><input type="number" min="0" step="0.01" value={form.sale_price} onChange={(event) => updateField('sale_price', event.target.value)} /></label><label><span>Selling fees</span><input type="number" min="0" step="0.01" value={form.selling_fees} onChange={(event) => updateField('selling_fees', event.target.value)} /></label></div><label><span>Lot notes</span><textarea value={form.notes} onChange={(event) => updateField('notes', event.target.value)} rows={4} /></label><div className="form__actions"><button type="button" className="button button--ghost" onClick={onCancel}>Cancel</button><button type="submit" className="button button--primary">Save lot</button></div></form>
 }
 
-function InventoryLotRow({ lot, items, templates, matches, onDelete, onEdit, onDuplicate, onGenerateLot, onEditLot, onGenerate }) {
+function InventoryLotRow({ lot, items, templates, matches, onDelete, onDuplicateLot, onEdit, onDuplicate, onGenerateLot, onEditLot, onGenerate }) {
   const [isOpen, setIsOpen] = useState(false)
   const purchaseValue = items.reduce((total, item) => total + Number(item.purchase_price || 0), 0)
   const targetValue = items.reduce((total, item) => total + Number(item.target_sale_price || 0), 0)
@@ -1494,15 +1504,16 @@ function InventoryLotRow({ lot, items, templates, matches, onDelete, onEdit, onD
   return (
     <details className="inventory-tree__lot" open={isOpen} onToggle={(event) => setIsOpen(event.currentTarget.open)}>
       <summary className="inventory-tree__row inventory-tree__row--lot">
-        <span className="inventory-tree__name"><strong>{lot.name}</strong><small>{metrics.itemCount} item{metrics.itemCount === 1 ? '' : 's'} · {metrics.soldCount}/{metrics.itemCount} sold</small></span>
-        <span className="inventory-tree__metrics"><b>{formatMoney(lot.purchase_price ?? purchaseValue)}</b><b>{formatMoney(lot.target_sale_price ?? targetValue)} target</b><span className="inventory-pill">{metrics.soldCount}/{metrics.itemCount} sold</span><span className="inventory-pill">ROI {metrics.roi === null ? '—' : `${metrics.roi.toFixed(1)}%`}</span></span>
-        <span className="table-actions"><button type="button" className="button button--ghost" onClick={(event) => { event.preventDefault(); onEditLot(lot) }}>Edit</button><button type="button" className="button button--danger" onClick={(event) => { event.preventDefault(); onDelete(lot.id) }}>Delete</button></span>
+        <span className="inventory-tree__name"><strong>{lot.name}</strong><small>{metrics.itemCount} item{metrics.itemCount === 1 ? '' : 's'}</small></span>
+        <span className="inventory-tree__lot-status">{metrics.statuses.map(({ status, count }) => <span className={`status-badge status-badge--${status}`} key={status}>{getStatusLabel(status)}{count > 1 ? ` (${count})` : ''}</span>)}<span className="status-badge status-badge--sold">{metrics.soldCount}/{metrics.itemCount} sold</span></span>
+        <span>{formatMoney(lot.purchase_price ?? purchaseValue)} purchase</span>
+        <span>{formatMoney(lot.target_sale_price ?? targetValue)} target</span>
+        <span>{metrics.soldValue ? `${formatMoney(metrics.soldValue)} sold` : '—'}</span>
+        <span className={metrics.roi !== null && metrics.roi < 0 ? 'value-negative' : 'value-positive'}>ROI {metrics.roi === null ? '—' : `${metrics.roi.toFixed(1)}%`}</span>
+        <span className="table-actions"><button type="button" className="button button--primary" onClick={(event) => { event.preventDefault(); onGenerateLot(lot, items, linkedTemplate) }} disabled={!linkedTemplate}>Generate</button><button type="button" className="button button--ghost" onClick={(event) => { event.preventDefault(); onDuplicateLot(lot, items) }}>Duplicate</button><button type="button" className="button button--ghost" onClick={(event) => { event.preventDefault(); onEditLot(lot) }}>Edit</button><button type="button" className="button button--danger" onClick={(event) => { event.preventDefault(); onDelete(lot.id) }}>Delete</button></span>
       </summary>
       <div className="lot-section__body">
         {lot.notes ? <p className="lot-section__notes">{lot.notes}</p> : null}
-        <div className="lot-section__actions">
-          {linkedTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerateLot(lot, items, linkedTemplate)}>Generate lot</button> : null}
-        </div>
         <div className="lot-items-list">
           {items.filter(matches).map((item) => {
             const roi = getItemRoi(item)
@@ -1738,7 +1749,7 @@ function OverviewPage({ items, templates, onOpenTemplates, onOpenInventory }) {
   )
 }
 
-function InventoryPage({ items, lots, templates, shipments, allocations, onCreate, onCreateLot, onCreateShipment, onEdit, onEditLot, onDelete, onDuplicate, onDeleteLot, onDeleteShipment, onGenerate, onGenerateLot }) {
+function InventoryPage({ items, lots, templates, shipments, allocations, onCreate, onCreateLot, onCreateShipment, onEdit, onEditLot, onDelete, onDuplicate, onDuplicateLot, onDeleteLot, onDeleteShipment, onGenerate, onGenerateLot }) {
   const [filter, setFilter] = useState('all')
   const [query, setQuery] = useState('')
   const [sortBy, setSortBy] = useState('purchase_date')
@@ -1828,7 +1839,7 @@ function InventoryPage({ items, lots, templates, shipments, allocations, onCreat
       </section>
       <section className="inventory-toolbar"><div className="inventory-filters" role="group" aria-label="Filter inventory"><button type="button" className={`filter-button ${filter === 'all' ? 'filter-button--active' : ''}`} onClick={() => setFilter('all')}>All <span>{items.length}</span></button><button type="button" className={`filter-button ${filter === 'in_transit' ? 'filter-button--active' : ''}`} onClick={() => setFilter('in_transit')}>In transit</button><button type="button" className={`filter-button ${filter === 'in_stock' ? 'filter-button--active' : ''}`} onClick={() => setFilter('in_stock')}>In stock</button><button type="button" className={`filter-button ${filter === 'to_list' ? 'filter-button--active' : ''}`} onClick={() => setFilter('to_list')}>To list</button><button type="button" className={`filter-button ${filter === 'listed' ? 'filter-button--active' : ''}`} onClick={() => setFilter('listed')}>Listed</button><button type="button" className={`filter-button ${filter === 'sold' ? 'filter-button--active' : ''}`} onClick={() => setFilter('sold')}>Sold</button></div><div className="inventory-toolbar__controls"><label><span>Sort by</span><select value={sortBy} onChange={(event) => setSortBy(event.target.value)}><option value="purchase_date">Purchase date</option><option value="purchase_price">Purchase price</option><option value="name">Name</option></select></label><button type="button" className="filter-button" onClick={() => setSortDirection((current) => current === 'asc' ? 'desc' : 'asc')} aria-label={`Sort ${sortDirection === 'asc' ? 'descending' : 'ascending'}`}>{sortDirectionLabel}</button><input className="inventory-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search inventory..." aria-label="Search inventory" /></div></section>
       {shipments.length > 0 ? <section className="shipment-history"><div className="section-label"><span>Shipments</span><small>{shipments.length} recorded</small></div>{shipments.map((shipment) => <article className="shipment-history__row" key={shipment.id}><div><strong>{shipment.name}</strong><small>{shipment.shipment_date} · {allocations.filter((allocation) => allocation.shipment_id === shipment.id).length} item lines</small></div><span>{formatMoney(getShipmentTotal(shipment))} allocated</span><button type="button" className="button button--danger" onClick={() => onDeleteShipment(shipment.id)}>Delete</button></article>)}</section> : null}
-      {visibleCount > 0 ? <section className="inventory-tree">{sortedEntries.map((entry) => entry.type === 'lot' ? (() => { const lotNameMatches = query.trim() && entry.lot.name.toLowerCase().includes(query.trim().toLowerCase()); return <InventoryLotRow key={entry.key} lot={entry.lot} items={entry.items} matches={(item) => lotNameMatches ? (filter === 'all' || item.status === filter) : matchesItem(item)} templates={templates} onDelete={onDeleteLot} onEdit={onEdit} onEditLot={onEditLot} onDuplicate={onDuplicate} onGenerate={onGenerate} onGenerateLot={onGenerateLot} /> })() : (() => { const item = entry.item; const roi = getItemRoi(item); const linkedTemplate = templates.find((template) => template.id === item.template_id); return <article className="inventory-tree__row inventory-tree__row--standalone" key={entry.key}><span className="inventory-tree__name"><strong>{item.name}</strong><small>{item.item_type || 'Uncategorised'} · {item.condition || 'Condition not set'}</small></span><span className={`status-badge status-badge--${item.status}`}>{item.status.replace('_', ' ')}</span><span>{formatMoney(item.purchase_price)} purchase</span><span>{item.target_sale_price === null ? '—' : formatMoney(item.target_sale_price)} target</span><span>{item.sale_price === null ? '—' : formatMoney(item.sale_price)} sold</span><span className={roi !== null && roi < 0 ? 'value-negative' : 'value-positive'}>ROI {roi === null ? '—' : `${roi.toFixed(1)}%`}</span><span className="table-actions">{linkedTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerate(item, linkedTemplate)}>Generate</button> : null}<button type="button" className="button button--ghost" onClick={() => onEdit(item)}>Edit</button><button type="button" className="button button--ghost" onClick={() => onDuplicate(item)}>Duplicate</button><button type="button" className="button button--danger" onClick={() => onDelete(item.id)}>Delete</button></span></article> })())}</section> : <section className="empty-state"><h2>{items.length === 0 ? 'Your inventory is empty' : 'No items match your view'}</h2><p>{items.length === 0 ? 'Add your first item to start tracking stock and profitability.' : 'Try another filter or search term.'}</p>{items.length === 0 ? <button type="button" className="button button--primary" onClick={onCreate}>Add your first item</button> : null}</section>}
+      {visibleCount > 0 ? <section className="inventory-tree">{sortedEntries.map((entry) => entry.type === 'lot' ? (() => { const lotNameMatches = query.trim() && entry.lot.name.toLowerCase().includes(query.trim().toLowerCase()); return <InventoryLotRow key={entry.key} lot={entry.lot} items={entry.items} matches={(item) => lotNameMatches ? (filter === 'all' || item.status === filter) : matchesItem(item)}       templates={templates} onDelete={onDeleteLot} onDuplicateLot={onDuplicateLot} onEdit={onEdit} onEditLot={onEditLot} onDuplicate={onDuplicate} onGenerate={onGenerate} onGenerateLot={onGenerateLot} /> })() : (() => { const item = entry.item; const roi = getItemRoi(item); const linkedTemplate = templates.find((template) => template.id === item.template_id); return <article className="inventory-tree__row inventory-tree__row--standalone" key={entry.key}><span className="inventory-tree__name"><strong>{item.name}</strong><small>{item.item_type || 'Uncategorised'} · {item.condition || 'Condition not set'}</small></span><span className={`status-badge status-badge--${item.status}`}>{item.status.replace('_', ' ')}</span><span>{formatMoney(item.purchase_price)} purchase</span><span>{item.target_sale_price === null ? '—' : formatMoney(item.target_sale_price)} target</span><span>{item.sale_price === null ? '—' : formatMoney(item.sale_price)} sold</span><span className={roi !== null && roi < 0 ? 'value-negative' : 'value-positive'}>ROI {roi === null ? '—' : `${roi.toFixed(1)}%`}</span><span className="table-actions">{linkedTemplate ? <button type="button" className="button button--primary" onClick={() => onGenerate(item, linkedTemplate)}>Generate</button> : null}<button type="button" className="button button--ghost" onClick={() => onEdit(item)}>Edit</button><button type="button" className="button button--ghost" onClick={() => onDuplicate(item)}>Duplicate</button><button type="button" className="button button--danger" onClick={() => onDelete(item.id)}>Delete</button></span></article> })())}</section> : <section className="empty-state"><h2>{items.length === 0 ? 'Your inventory is empty' : 'No items match your view'}</h2><p>{items.length === 0 ? 'Add your first item to start tracking stock and profitability.' : 'Try another filter or search term.'}</p>{items.length === 0 ? <button type="button" className="button button--primary" onClick={onCreate}>Add your first item</button> : null}</section>}
     </section>
   )
 }
@@ -2122,6 +2133,36 @@ function App() {
   const handleDuplicateInventoryItem = (item) => {
     const { id, created_at, updated_at, ...copy } = item
     setInventoryEditor({ ...copy, name: `${item.name} (copy)` })
+  }
+
+  const handleDuplicateInventoryLot = async (lot, items) => {
+    const { id, created_at, updated_at, user_id, ...lotCopy } = lot
+    const { data: duplicatedLot, error: lotError } = await supabase
+      .from('inventory_lots')
+      .insert({ ...lotCopy, name: `${lot.name} (copy)`, user_id: session.user.id })
+      .select()
+      .single()
+
+    if (lotError) {
+      setError(lotError.message)
+      return
+    }
+
+    const duplicatedItems = items.map(({ id: itemId, created_at: itemCreatedAt, updated_at: itemUpdatedAt, user_id: itemUserId, lot_id, ...item }) => ({
+      ...item,
+      lot_id: duplicatedLot.id,
+      user_id: session.user.id,
+    }))
+    const { data: savedItems, error: itemsError } = await supabase.from('inventory_items').insert(duplicatedItems).select()
+
+    if (itemsError) {
+      await supabase.from('inventory_lots').delete().eq('id', duplicatedLot.id)
+      setError(itemsError.message)
+      return
+    }
+
+    setInventoryLots((current) => [duplicatedLot, ...current])
+    setInventoryItems((current) => [...savedItems, ...current])
   }
 
   const handleSaveInventoryLot = async ({ name, notes, lotFields, items }) => {
@@ -2484,7 +2525,7 @@ function App() {
             )}
           </section>
         )}
-        </> : <InventoryPage items={inventoryItems} lots={inventoryLots} templates={templates} shipments={inventoryShipments} allocations={shipmentAllocations} onCreate={() => setInventoryEditor({})} onCreateLot={() => setLotEditor({})} onCreateShipment={() => setShipmentEditor(true)} onEdit={setInventoryEditor} onEditLot={setLotEditor} onDelete={handleDeleteInventoryItem} onDuplicate={handleDuplicateInventoryItem} onDeleteLot={handleDeleteInventoryLot} onDeleteShipment={handleDeleteShipment} onGenerate={(item, template) => { setInventoryEditor(null); setGeneratorTemplate({ template, initialValues: getGeneratorValues(item, extractVariables(`${template.title ?? ''}\n${template.content}`)) }) }} onGenerateLot={handleGenerateLot} />}
+        </> : <InventoryPage items={inventoryItems} lots={inventoryLots} templates={templates} shipments={inventoryShipments} allocations={shipmentAllocations} onCreate={() => setInventoryEditor({})} onCreateLot={() => setLotEditor({})} onCreateShipment={() => setShipmentEditor(true)} onEdit={setInventoryEditor} onEditLot={setLotEditor} onDelete={handleDeleteInventoryItem} onDuplicate={handleDuplicateInventoryItem} onDuplicateLot={handleDuplicateInventoryLot} onDeleteLot={handleDeleteInventoryLot} onDeleteShipment={handleDeleteShipment} onGenerate={(item, template) => { setInventoryEditor(null); setGeneratorTemplate({ template, initialValues: getGeneratorValues(item, extractVariables(`${template.title ?? ''}\n${template.content}`)) }) }} onGenerateLot={handleGenerateLot} />}
       </main>
 
       {editorTemplate ? (
