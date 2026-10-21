@@ -362,7 +362,7 @@ function AccountPanel({ session, onClose, onDeleted, onOpenFaq, fullPage = false
         <header className="account-page__header">
           <div className="topbar__brand">
             <img className="brand-mark" src="/logo-adrafteo-plume-blanche.png" alt="" aria-hidden="true" />
-            <strong>adrafteo</strong>
+            <strong>Adrafteo</strong>
           </div>
           <button type="button" className="button button--ghost" onClick={onClose}>Back to workspace</button>
         </header>
@@ -2435,9 +2435,11 @@ function App() {
       <header className="topbar">
         <div className="topbar__brand">
           <img className="brand-mark" src="/logo-adrafteo-plume-blanche.png" alt="" aria-hidden="true" />
-          <strong>adrafteo</strong>
-          <span className="brand-dot" aria-hidden="true">●</span>
+          <span className="topbar__brand-name">
+            <strong>Adrafteo</strong>
+          </span>
         </div>
+        <span className="topbar__separator" aria-hidden="true">●</span>
         <div className="topbar__identity">
           <p className="eyebrow">Workspace listing architecture</p>
           <h1>{activeView === 'templates' ? 'Structured Listing Templates' : activeView === 'inventory' ? 'Inventory Registry' : 'Seller Performance Overview'}</h1>

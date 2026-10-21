@@ -2513,7 +2513,7 @@ body {
 .topbar {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 28px;
   margin: 0 -16px;
@@ -2531,21 +2531,35 @@ body {
 }
 
 .topbar__brand {
-  gap: 7px;
+  align-items: center;
+  flex-direction: column;
+  gap: 4px;
   color: #333745;
   font-size: 0.82rem;
 }
 
-.brand-mark {
+.topbar__brand .brand-mark {
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 46px;
+  height: 46px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 10px;
   background: #b0413e;
 }
 
-.brand-dot {
+.topbar__brand strong {
+  line-height: 1;
+}
+
+.topbar__brand-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1;
+}
+
+.topbar__separator {
+  align-self: center;
   color: #6a994e;
   font-size: 0.55rem;
 }
@@ -3499,7 +3513,7 @@ select {
 
 @media (max-width: 860px) {
   .topbar {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto auto 1fr;
   }
 
   .topbar__identity {
@@ -3508,7 +3522,7 @@ select {
   }
 
   .topbar__actions {
-    grid-column: 2;
+    grid-column: 3;
     grid-row: 1;
   }
 
