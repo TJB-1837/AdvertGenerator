@@ -3365,6 +3365,17 @@ select {
   font-weight: 700;
 }
 
+.account-page .account-preferences {
+  display: grid;
+  gap: 14px;
+}
+
+.account-page .account-preferences small {
+  color: #747887;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 .account-page .account-section--danger {
   border-color: #efc8c6;
   background: #fffafa;
@@ -4119,6 +4130,165 @@ select {
 .app-shell .inventory-page .inventory-tree .table-actions .button--danger {
   color: #b0413e;
   background: #fce9e8;
+}
+
+/* Inventory creation forms use distinct sections for identity, pricing and listing data. */
+.app-shell .modal--wide {
+  width: min(980px, calc(100vw - 32px));
+}
+
+.app-shell .inventory-entry-form,
+.app-shell .lot-entry-form {
+  gap: 20px;
+}
+
+.app-shell .inventory-entry-form > .form-grid,
+.app-shell .lot-entry-form > .form-grid {
+  align-items: start;
+  gap: 14px;
+}
+
+.app-shell .inventory-entry-form > .form-grid > label,
+.app-shell .inventory-entry-form > .form-grid > .platform-picker {
+  min-width: 0;
+}
+
+.app-shell .inventory-entry-form > label,
+.app-shell .lot-entry-form > label {
+  gap: 7px;
+}
+
+.app-shell .inventory-entry-form .platform-picker,
+.app-shell .lot-entry-form .lot-common-fields,
+.app-shell .lot-entry-form .lot-pricing-fields,
+.app-shell .lot-entry-form .lot-item-form {
+  border: 1px solid #e6dfe2;
+  border-radius: 12px;
+  background: #fbf9fa;
+}
+
+.app-shell .inventory-entry-form .platform-picker,
+.app-shell .lot-entry-form .lot-common-fields,
+.app-shell .lot-entry-form .lot-pricing-fields {
+  padding: 12px 14px;
+}
+
+.app-shell .inventory-entry-form .platform-picker {
+  display: grid;
+  grid-column: 1 / -1;
+  align-content: start;
+  align-self: start;
+  height: auto;
+  box-sizing: border-box;
+}
+
+.app-shell .inventory-entry-form .platform-options {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.app-shell .inventory-entry-form .platform-options label {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  text-align: center;
+  padding: 9px 8px;
+  border-color: #e4dce0;
+  border-radius: 8px;
+  color: #333745;
+  background: #f0f1ff;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.app-shell .inventory-entry-form .platform-options input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.app-shell .lot-entry-form .platform-options label {
+  border-color: #e4dce0;
+  color: #333745;
+  background: #f0f1ff;
+}
+
+.app-shell .lot-entry-form .lot-common-fields {
+  border-left: 3px solid #6a994e;
+}
+
+.app-shell .lot-entry-form .lot-pricing-fields {
+  border-left: 3px solid #ffcb47;
+}
+
+.app-shell .inventory-entry-form .platform-picker legend,
+.app-shell .lot-entry-form fieldset legend {
+  color: #333745;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.app-shell .inventory-entry-form .platform-picker,
+.app-shell .lot-entry-form .platform-picker {
+  color: #333745;
+}
+
+.app-shell .lot-entry-form .lot-common-fields p,
+.app-shell .lot-entry-form .lot-form-items__header p {
+  color: #747887;
+}
+
+.app-shell .lot-entry-form .lot-form-items {
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.app-shell .lot-entry-form .lot-item-form {
+  padding: 18px;
+  background: #fff;
+}
+
+.app-shell .lot-entry-form .lot-item-form summary {
+  margin: -2px 0 14px;
+  color: #333745;
+  cursor: default;
+  font-weight: 800;
+  list-style: none;
+}
+
+.app-shell .lot-entry-form .lot-item-form summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-shell .lot-entry-form .lot-item-form .form-grid {
+  gap: 12px;
+}
+
+.app-shell .inventory-entry-form .form__actions,
+.app-shell .lot-entry-form .form__actions {
+  padding-top: 8px;
+  border-top: 1px solid #eee7e9;
+}
+
+@media (max-width: 640px) {
+  .app-shell .modal--wide {
+    width: min(100%, calc(100vw - 20px));
+  }
+
+  .app-shell .inventory-entry-form .platform-picker,
+  .app-shell .lot-entry-form .lot-common-fields,
+  .app-shell .lot-entry-form .lot-pricing-fields,
+  .app-shell .lot-entry-form .lot-item-form {
+    padding: 14px;
+  }
+
+  .app-shell .inventory-entry-form .platform-options {
+    flex-wrap: wrap;
+  }
+
+  .app-shell .inventory-entry-form .platform-options label {
+    flex: 1 1 calc(33.333% - 6px);
+  }
 }
 
 /* Public landing page light theme. */

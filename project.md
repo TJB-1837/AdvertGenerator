@@ -40,6 +40,7 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Landing page for unauthenticated visitors
 - Light-themed sign-in and account creation screen aligned with the Adrafteo palette
 - Dedicated authenticated Account page with workspace return navigation, password change, and double-confirmed account deletion
+- Account display preferences include a device-saved date format selector (`DD/MM/YYYY`, `MM/DD/YYYY`, or `YYYY-MM-DD`); language selection is prepared as a disabled English placeholder for a future localization update
 - Restyled the Feedback modal to match the current light design with a wider white surface, clearer fields, readable feedback area, and responsive actions
 - Light-themed FAQ, legal notice, privacy policy, and terms pages aligned with the public and workspace UI
 - Public Pricing page with a two-column Free plan feature comparison, linked from public and authenticated footers
@@ -77,6 +78,10 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Shipment VAT supports not applicable, manual, and automatic rate-based modes, with an option to exclude VAT from item cost
 - Shipment allocations are stored separately, flag previously assigned items, update item and lot effective costs, and can be deleted to reverse their allocations
 - Lot creation supports common purchase date, status, type, condition, and platform values that can be applied to all sub-items before saving
+- Inventory item and lot creation forms use a wider light layout with grouped pricing, listing, and shared-value sections; lot sold summaries only appear when the lot contains `to_list`, `listed`, or `sold` items
+- Lot common purchase dates now apply to the lot itself, and lot purchase prices are allocated across individual item totals proportionally to each item's quantity
+- Lot price allocation now normalizes numeric input explicitly, including decimal-comma input, and preserves the exact lot total in cents
+- Individual lot purchase prices now recalculate immediately whenever the lot purchase price or an item quantity changes
 - Templates, standalone inventory items, and lot sub-items can be duplicated into editable copies
 - Lots have their own template, purchase/sale pricing, and a single lot-level advert generation action; common lot variables can prefill item-list content
 - Cross variables provide reusable per-user default values across all templates, with multi-line generator inputs and visible recognized-variable chips
