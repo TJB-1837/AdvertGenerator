@@ -1272,7 +1272,8 @@ textarea {
 }
 
 .overview-heading h2 {
-  max-width: 25ch;
+  max-width: none;
+  overflow: hidden;
   margin: 0;
   color: #333745;
   font-family: Georgia, 'Times New Roman', serif;
@@ -1280,6 +1281,8 @@ textarea {
   font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .overview-heading p:not(.eyebrow) {
@@ -2246,7 +2249,8 @@ textarea {
 }
 
 .overview-heading h2 {
-  max-width: 25ch;
+  max-width: none;
+  overflow: hidden;
   margin: 0;
   color: #333745;
   font-family: Georgia, 'Times New Roman', serif;
@@ -2254,6 +2258,8 @@ textarea {
   font-weight: 500;
   letter-spacing: -0.04em;
   line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .overview-heading p:not(.eyebrow) {
@@ -2561,11 +2567,15 @@ body {
 
 .topbar h1 {
   margin: 0;
+  max-width: none;
+  overflow: hidden;
   color: #333745;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: clamp(1.65rem, 3vw, 2.4rem);
   font-weight: 500;
   letter-spacing: -0.04em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .eyebrow {
@@ -2583,6 +2593,13 @@ body {
 
 .topbar__actions {
   justify-content: flex-end;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.topbar__actions .button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .feedback-pill {
@@ -2617,12 +2634,17 @@ body {
   gap: 22px;
   margin-bottom: 24px;
   border-bottom-color: #e4dce0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .workspace-nav__link {
+  flex: 0 0 auto;
   padding: 0 0 12px;
   color: #747887;
   font-size: 0.83rem;
+  white-space: nowrap;
 }
 
 .workspace-nav__link small {
