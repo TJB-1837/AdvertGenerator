@@ -71,6 +71,7 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Inventory now uses one compact folder-style list for standalone items and expandable lots, with lot/item sold-count and ROI pills that preserve item-based dashboard counts
 - Inventory lots and standalone items share one sortable stream and can be ordered by purchase date, purchase price, or name in ascending or descending order
 - Inventory items and lot sub-items support an `In transit` status; transit items remain visible and filterable but are excluded from the in-stock dashboard count
+- Lots now also have an independent `In transit` status shown on the lot row and editable separately from each sub-item status
 - Lot summary rows mirror standalone item columns and alignment: status summary, purchase price, target price, sold value, ROI, Generate, Duplicate, Edit, and Delete actions, with matching `purchase` and `sold` labels
 - Lot creation automatically distributes the lot purchase and target sale prices across its sub-items, while preserving manual per-item overrides
 - Inventory items support physical quantities, base purchase prices, and separate inbound costs; existing items are migrated to quantity 1
