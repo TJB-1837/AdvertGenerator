@@ -1577,6 +1577,30 @@ textarea {
   background: #333745;
 }
 
+.comparison-chart__segment--kept {
+  background: #b0413e;
+}
+
+.comparison-chart__segment--sold {
+  background: #6a994e;
+}
+
+.comparison-chart__segment--listed {
+  background: #8f78a8;
+}
+
+.comparison-chart__segment--in_stock {
+  background: #72a7d1;
+}
+
+.comparison-chart__segment--to_list {
+  background: #d8aa35;
+}
+
+.comparison-chart__segment--in_transit {
+  background: #ffcb47;
+}
+
 .comparison-chart__segment--recovered {
   background: #6a994e;
   border-radius: 3px 0 0 3px;
@@ -1613,6 +1637,30 @@ textarea {
 }
 
 .comparison-chart__legend-swatch--potential {
+  background: #ffcb47;
+}
+
+.comparison-chart__legend-swatch--kept {
+  background: #b0413e;
+}
+
+.comparison-chart__legend-swatch--sold {
+  background: #6a994e;
+}
+
+.comparison-chart__legend-swatch--listed {
+  background: #8f78a8;
+}
+
+.comparison-chart__legend-swatch--in_stock {
+  background: #72a7d1;
+}
+
+.comparison-chart__legend-swatch--to_list {
+  background: #d8aa35;
+}
+
+.comparison-chart__legend-swatch--in_transit {
   background: #ffcb47;
 }
 
@@ -1895,6 +1943,69 @@ textarea {
   border: 1px solid rgba(148, 163, 184, 0.14);
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.58);
+}
+
+.shipment-form {
+  gap: 1.25rem;
+}
+
+.shipment-form .form-grid {
+  gap: 0.85rem;
+}
+
+.shipment-form label span,
+.shipment-fieldset legend {
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.shipment-form input,
+.shipment-form select,
+.shipment-form textarea {
+  min-height: 2.65rem;
+  border: 1px solid rgba(51, 55, 69, 0.14);
+  border-radius: 0.7rem;
+  background: #fff;
+  color: var(--ink);
+}
+
+.shipment-form input:focus,
+.shipment-form select:focus,
+.shipment-form textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(176, 65, 62, 0.12);
+  outline: none;
+}
+
+.shipment-fieldset {
+  border: 1px solid rgba(51, 55, 69, 0.12);
+  border-radius: 0.9rem;
+  background: rgba(245, 237, 240, 0.45);
+  padding: 1rem;
+}
+
+.shipment-fieldset legend {
+  padding: 0 0.45rem;
+}
+
+.shipment-summary {
+  border: 1px solid rgba(51, 55, 69, 0.12);
+  border-radius: 0.85rem;
+  background: #fff;
+  color: var(--ink);
+  padding: 0.9rem 1rem;
+}
+
+.shipment-summary strong {
+  color: var(--ink);
+}
+
+.shipment-summary span {
+  color: var(--ink-muted);
+  font-size: 0.88rem;
 }
 
 .shipment-history__row strong,
@@ -3774,6 +3885,30 @@ select {
 .app-shell .comparison-chart__segment--potential {
   background: #ffcb47 !important;
   border-radius: 0 3px 3px 0;
+}
+
+.app-shell .comparison-chart__segment--kept {
+  background: #b0413e !important;
+}
+
+.app-shell .comparison-chart__segment--sold {
+  background: #6a994e !important;
+}
+
+.app-shell .comparison-chart__segment--listed {
+  background: #8f78a8 !important;
+}
+
+.app-shell .comparison-chart__segment--to_list {
+  background: #d8aa35 !important;
+}
+
+.app-shell .comparison-chart__segment--in_stock {
+  background: #72a7d1 !important;
+}
+
+.app-shell .comparison-chart__segment--in_transit {
+  background: #ffcb47 !important;
 }
 
 .app-shell .comparison-chart__legend {

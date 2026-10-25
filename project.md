@@ -37,10 +37,23 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 
 ## Implemented
 
+- Split the active React code into pages, components and shared business helpers; removed unused legacy lot components. See README for the source map.
+- Unified the stock definition across Overview and Inventory: kept, in-transit and sold items are excluded.
+- Clarified sale costs as marketplace commission plus seller-paid shipping to the buyer; acquisition shipping remains separate. Shipment forms no longer prefill acquisition shipping that is already included in purchase cost.
+- Fixed the invalid inventory SQL ALTER TABLE and added atomic save/delete shipment RPCs, with RLS, item-ownership checks, quantity/total validation and rollback on failure. Re-run supabase/inventory.sql before using the updated shipment UI.
+- Fixed manual shipment entry from zero, zero-value purchase allocation, exact-cent shipment rounding, VAT mode/zero-base handling, and currency conversion in lot forms. Stabilized default generator values so typing is not reset by fresh empty objects.
+- Added dependency-free business regression tests (npm test) and a PostgreSQL-in-memory SQL regression runner, including migration reruns, two-account isolation and simulated late failures. Production build validated locally.
+
+
 - Landing page for unauthenticated visitors
 - Light-themed sign-in and account creation screen aligned with the Adrafteo palette
 - Dedicated authenticated Account page with workspace return navigation, password change, and double-confirmed account deletion
 - Account display preferences include a device-saved date format selector (`DD/MM/YYYY`, `MM/DD/YYYY`, or `YYYY-MM-DD`); language selection is prepared as a disabled English placeholder for a future localization update
+- Added reversible `Kept` inventory status, including inventory filtering, lot summaries, database checks, and the overview cash-flow chart
+- Applying common lot values now also updates the lot-level status; `Kept` is available in all active item and lot status selectors
+- Overview cash-flow chart now segments Money spent from left to right as Kept, Sold, Listed, In stock, and In transit, with each segment showing its amount and percentage; Recovered continues to combine realised revenue and resale potential
+- Cash-flow segmentation also includes the existing `To list` status so all inventory purchase values remain visible in the Money spent bar
+- Account display preferences include a device-saved currency selector for EUR, GBP, and USD; amounts remain stored in EUR and are converted for display and data entry using live rates with local fallback rates
 - Restyled the Feedback modal to match the current light design with a wider white surface, clearer fields, readable feedback area, and responsive actions
 - Light-themed FAQ, legal notice, privacy policy, and terms pages aligned with the public and workspace UI
 - Public Pricing page with a two-column Free plan feature comparison, linked from public and authenticated footers
@@ -75,9 +88,11 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 - Lot summary rows mirror standalone item columns and alignment: status summary, purchase price, target price, sold value, ROI, Generate, Duplicate, Edit, and Delete actions, with matching `purchase` and `sold` labels
 - Lot creation automatically distributes the lot purchase and target sale prices across its sub-items, while preserving manual per-item overrides
 - Inventory items support physical quantities, base purchase prices, and separate inbound costs; existing items are migrated to quantity 1
+- Item and lot purchases support a separate seller-to-forwarder (seller → MYUS) shipping cost; it is included in effective purchase cost, while shipment requests remain for forwarder-to-home and shared import costs
 - Shipments can allocate store-to-forwarder delivery, forwarder-to-home delivery, monthly subscription, VAT, and additional fees across selected physical units using value-based, equal, or manual allocation
 - Shipment VAT supports not applicable, manual, and automatic rate-based modes, with an option to exclude VAT from item cost
 - Shipment allocations are stored separately, flag previously assigned items, update item and lot effective costs, and can be deleted to reverse their allocations
+- Add shipment now prefills `Store to forwarder` from the selected items' seller-to-forwarder shipping costs while keeping it editable; item and lot `Final price` values are updated when shipment costs are allocated or reversed
 - Lot creation supports common purchase date, status, type, condition, and platform values that can be applied to all sub-items before saving
 - Inventory item and lot creation forms use a wider light layout with grouped pricing, listing, and shared-value sections; lot sold summaries only appear when the lot contains `to_list`, `listed`, or `sold` items
 - Lot common purchase dates now apply to the lot itself, and lot purchase prices are allocated across individual item totals proportionally to each item's quantity
@@ -158,16 +173,17 @@ Configure the two `VITE_SUPABASE_*` variables in Vercel for Production, Preview,
 - No image upload or image hosting.
 - Inventory SQL must be run manually in Supabase before the Inventory page can load or save items. Re-run the file for existing inventory installations to add the multi-platform column and migrate the legacy platform value.
 - Lot support requires re-running `supabase/inventory.sql` after the existing inventory migration so the `inventory_lots` table and `lot_id` relationship are created.
-- Shipment support requires re-running `supabase/inventory.sql` so quantity, inbound-cost, shipment, and shipment-allocation columns/tables and RLS policies exist.
+- Shipment support requires re-running `supabase/inventory.sql` so quantity, inbound-cost, final-price, shipment, and shipment-allocation columns/tables and RLS policies exist.
+- Re-run `supabase/inventory.sql` after adding seller-to-forwarder shipping fields so existing inventory tables receive the new cost columns.
 - Re-run `supabase/inventory.sql` after this status change so the inventory and lot status constraints accept `in_transit`.
 - Cross variables require running `supabase/cross_variables.sql` in Supabase before using the `Cross variables` menu.
 - No billing or subscriptions.
 - No admin dashboard for feedback; feedback is read from Supabase Table Editor.
 - Feedback submissions are insert-only but need CAPTCHA or rate limiting before a public launch.
 - Legal texts are present in-app; the owner name/contact email and retention periods are filled (two years after last connection for account data, 90 days for feedback), but the postal address, final hosting region, jurisdiction clause, and final legal review still need confirmation before going live.
-- No automated end-to-end tests yet.
+- No automated browser end-to-end tests yet. Business regression tests are available through npm test; the SQL runner is documented in README.
 - No migration tooling; SQL files are currently run manually in Supabase.
-- SEO and GEO foundations are not implemented yet: metadata, Open Graph, robots.txt, sitemap.xml, JSON-LD, and SEO monitoring remain to be added. FAQ content is now available on the public landing page and a dedicated FAQ page.
+- SEO foundations are present: metadata, Open Graph, robots.txt, sitemap.xml, JSON-LD and public FAQ content. Search indexing and ongoing monitoring still require follow-up.
 - Initial light workspace redesign started from the Adrafteo reference palette (`#B0413E`, `#FFCB47`, `#F5EDF0`, `#333745`, `#6A994E`): the authenticated Templates view now has a responsive light shell, branded navigation, search, and denser template cards while preserving Supabase data and actions.icated FAQ page.
 - Refined the Templates view toward a more editorial, ergonomic interface: workspace metrics are now presented as an inline summary rather than generic cards, while template cards remain intentionally retained; duplicate is now an explicit action beside edit.icated FAQ page.
 - Removed non-functional reference-only labels (`FEEDS`, `Personal`, and year-based template badges) and placed the real `Create template` action at the right of the Templates summary row.icated FAQ page.

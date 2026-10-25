@@ -108,3 +108,31 @@ After deployment, add the Vercel URL in Supabase under **Authentication > URL Co
 ## Current scope
 
 Adrafteo is currently an early beta. Templates and feedback are persisted in Supabase, while advert text generation runs locally in the user's browser. There is no AI generation, billing, admin dashboard, or image hosting yet.
+
+## Finding your way around the code
+
+- `src/App.jsx`: connects the session, loaded data, navigation and save/delete actions.
+- `src/pages/`: full screens (public pages, Overview and Inventory).
+- `src/components/`: forms, cards and dialogs. For example, `ShipmentForm.jsx` handles the shipment form, and `InventoryForms.jsx` contains item creation, lot creation and lot editing.
+- `src/lib/workspace.js`: shared calculations, formatting, currency settings and template variable replacement.
+- `src/lib/supabase.js`: the Supabase client.
+- `src/styles.css`: the shared stylesheet; legacy overrides remain for a separate visual cleanup.
+- `supabase/inventory.sql`: inventory schema, access policies and transactional shipment functions.
+
+A component is a JavaScript function returning JSX (HTML-like markup). `export` makes a component available to another file; `import` brings it into that file. `App.jsx` passes values and callbacks to components through props. To change a field, start in its form component; to change a calculation, start in `workspace.js`.
+
+Sale costs are monetary totals: marketplace commission plus shipping to the buyer paid by the seller. For a sale of 100 with a 13% commission and 5 shipping, enter 18. Acquisition shipping is included in purchase cost instead. A shipment must contain only additional acquisition costs that were not already entered on the item.
+
+## Validation
+
+Run `npm test` for the business regression suite and `npm run build` for a production compilation.
+
+The SQL regression runner uses a temporary PGlite installation (PostgreSQL in memory). It does not connect to Supabase or change application dependencies. From PowerShell:
+
+```powershell
+npm install --prefix "$env:TEMP/adrafteo-sql-validation" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite
+$env:ADRAFTEO_PGLITE_MODULE = "$env:TEMP/adrafteo-sql-validation/node_modules/@electric-sql/pglite/dist/index.js"
+node tests/inventory-sql.mjs
+```
+
+Before deploying the updated frontend, run `supabase/inventory.sql` in the Supabase SQL Editor to install the new shipment RPCs. Historical costs are not automatically rewritten: review any past shipment in which the same acquisition shipping may have been entered twice.
