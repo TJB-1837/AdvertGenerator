@@ -1,3 +1,4 @@
+import { MoneyInput } from './MoneyInput'
 import { useEffect, useRef, useState } from 'react'
 import {
   currencyOptions,
@@ -26,6 +27,7 @@ export function InventoryForm({ initialItem, templates, onSave, onCancel }) {
         0,
         Number(initialItem?.purchase_price || 0) -
           Number(initialItem?.inbound_cost || 0) -
+          Number(initialItem?.lot_shipping_cost || 0) -
           getItemSellerToForwarderCost(initialItem ?? {}),
       ),
     seller_to_forwarder_cost: initialItem?.seller_to_forwarder_cost ?? 0,
@@ -54,14 +56,16 @@ export function InventoryForm({ initialItem, templates, onSave, onCancel }) {
         (
           Number(form.purchase_price) +
           Number(form.seller_to_forwarder_cost || 0) +
-          Number(initialItem?.inbound_cost || 0)
+          Number(initialItem?.inbound_cost || 0) +
+          Number(initialItem?.lot_shipping_cost || 0)
         ).toFixed(2),
       ),
       final_price: Number(
         (
           Number(form.purchase_price) +
           Number(form.seller_to_forwarder_cost || 0) +
-          Number(initialItem?.inbound_cost || 0)
+          Number(initialItem?.inbound_cost || 0) +
+          Number(initialItem?.lot_shipping_cost || 0)
         ).toFixed(2),
       ),
       base_purchase_price: Number(form.purchase_price) || 0,
@@ -189,12 +193,9 @@ export function InventoryForm({ initialItem, templates, onSave, onCancel }) {
         </label>
         <label>
           <span>{currencyOptions[currencySettings.currency].symbol} Purchase price</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.purchase_price)}
-            onChange={(event) => updateField('purchase_price', parseMoneyInput(event.target.value))}
+          <MoneyInput
+            value={form.purchase_price}
+            onValueChange={(value) => updateField('purchase_price', parseMoneyInput(value))}
             required
           />
         </label>
@@ -202,16 +203,20 @@ export function InventoryForm({ initialItem, templates, onSave, onCancel }) {
           <span>
             {currencyOptions[currencySettings.currency].symbol} Shipping cost (seller to MYUS)
           </span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.seller_to_forwarder_cost)}
-            onChange={(event) =>
-              updateField('seller_to_forwarder_cost', parseMoneyInput(event.target.value))
+          <MoneyInput
+            value={form.seller_to_forwarder_cost}
+            onValueChange={(value) =>
+              updateField('seller_to_forwarder_cost', parseMoneyInput(value))
             }
           />
         </label>
+        {initialItem?.lot_id ? (
+          <label>
+            <span>Allocated lot shipping</span>
+            <input readOnly value={formatMoneyInput(initialItem?.lot_shipping_cost || 0)} />
+            <small>Recalculated by physical quantity when saved.</small>
+          </label>
+        ) : null}
         <label>
           <span>{currencyOptions[currencySettings.currency].symbol} Final price</span>
           <input
@@ -219,20 +224,16 @@ export function InventoryForm({ initialItem, templates, onSave, onCancel }) {
             value={formatMoneyInput(
               Number(form.purchase_price || 0) +
                 Number(form.seller_to_forwarder_cost || 0) +
-                Number(initialItem?.inbound_cost || 0),
+                Number(initialItem?.inbound_cost || 0) +
+                Number(initialItem?.lot_shipping_cost || 0),
             )}
           />
         </label>
         <label>
           <span>{currencyOptions[currencySettings.currency].symbol} Target sale price</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.target_sale_price)}
-            onChange={(event) =>
-              updateField('target_sale_price', parseMoneyInput(event.target.value))
-            }
+          <MoneyInput
+            value={form.target_sale_price}
+            onValueChange={(value) => updateField('target_sale_price', parseMoneyInput(value))}
             placeholder="Expected price"
           />
         </label>
@@ -246,12 +247,9 @@ export function InventoryForm({ initialItem, templates, onSave, onCancel }) {
         </label>
         <label>
           <span>{currencyOptions[currencySettings.currency].symbol} Sale price</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.sale_price)}
-            onChange={(event) => updateField('sale_price', parseMoneyInput(event.target.value))}
+          <MoneyInput
+            value={form.sale_price}
+            onValueChange={(value) => updateField('sale_price', parseMoneyInput(value))}
             placeholder="Leave blank until sold"
           />
         </label>
@@ -260,12 +258,9 @@ export function InventoryForm({ initialItem, templates, onSave, onCancel }) {
             {currencyOptions[currencySettings.currency].symbol} Sale costs (commission + shipping to
             buyer)
           </span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.selling_fees)}
-            onChange={(event) => updateField('selling_fees', parseMoneyInput(event.target.value))}
+          <MoneyInput
+            value={form.selling_fees}
+            onValueChange={(value) => updateField('selling_fees', parseMoneyInput(value))}
           />
         </label>
       </div>
@@ -339,6 +334,10 @@ export function LotFormV2({ templates, onSave, onCancel }) {
   })
   const [items, setItems] = useState([createBlankLotItem()])
   const previousAllocation = useRef({ purchase: [], target: [] })
+  const shippingAllocation = allocateAmountByQuantities(
+    lotFields.seller_to_forwarder_cost || 0,
+    items.map((item) => item.quantity),
+  )
 
   useEffect(() => {
     const purchaseAllocation = allocateAmountByQuantities(
@@ -455,7 +454,7 @@ export function LotFormV2({ templates, onSave, onCancel }) {
         sale_price: lotFields.sale_price === '' ? null : Number(lotFields.sale_price),
         selling_fees: Number(lotFields.selling_fees) || 0,
       },
-      items: items.map((item) => ({
+      items: items.map((item, index) => ({
         ...item,
         name: item.name.trim(),
         quantity: Math.max(1, Number(item.quantity) || 1),
@@ -463,8 +462,20 @@ export function LotFormV2({ templates, onSave, onCancel }) {
         condition: item.condition.trim() || null,
         purchase_date: item.purchase_date || null,
         purchase_price: Number(
-          (Number(item.purchase_price) + Number(item.seller_to_forwarder_cost || 0)).toFixed(2),
+          (
+            Number(item.purchase_price) +
+            Number(item.seller_to_forwarder_cost || 0) +
+            Number(shippingAllocation[index] || 0)
+          ).toFixed(2),
         ),
+        final_price: Number(
+          (
+            Number(item.purchase_price) +
+            Number(item.seller_to_forwarder_cost || 0) +
+            Number(shippingAllocation[index] || 0)
+          ).toFixed(2),
+        ),
+        lot_shipping_cost: Number(shippingAllocation[index] || 0),
         base_purchase_price: Number(item.purchase_price) || 0,
         seller_to_forwarder_cost: Number(item.seller_to_forwarder_cost) || 0,
         target_sale_price: item.target_sale_price === '' ? null : Number(item.target_sale_price),
@@ -611,31 +622,53 @@ export function LotFormV2({ templates, onSave, onCancel }) {
           </label>
           <label>
             <span>Purchase price</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={formatMoneyInput(lotFields.purchase_price)}
-              onChange={(event) =>
+            <MoneyInput
+              value={lotFields.purchase_price}
+              onValueChange={(value) =>
                 setLotFields((current) => ({
                   ...current,
-                  purchase_price: parseMoneyInput(event.target.value),
+                  purchase_price: parseMoneyInput(value),
                 }))
               }
               required
             />
           </label>
           <label>
-            <span>Target sale price</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={formatMoneyInput(lotFields.target_sale_price)}
-              onChange={(event) =>
+            <span>Shipping cost (seller to MYUS)</span>
+            <MoneyInput
+              value={lotFields.seller_to_forwarder_cost}
+              onValueChange={(value) =>
                 setLotFields((current) => ({
                   ...current,
-                  target_sale_price: parseMoneyInput(event.target.value),
+                  seller_to_forwarder_cost: parseMoneyInput(value),
+                }))
+              }
+            />
+            <small>Shared across the lot by physical quantity.</small>
+          </label>
+          <label>
+            <span>Final price</span>
+            <input
+              readOnly
+              value={formatMoneyInput(
+                items.reduce(
+                  (total, item) =>
+                    total +
+                    Number(item.purchase_price || 0) +
+                    Number(item.seller_to_forwarder_cost || 0),
+                  0,
+                ) + Number(lotFields.seller_to_forwarder_cost || 0),
+              )}
+            />
+          </label>
+          <label>
+            <span>Target sale price</span>
+            <MoneyInput
+              value={lotFields.target_sale_price}
+              onValueChange={(value) =>
+                setLotFields((current) => ({
+                  ...current,
+                  target_sale_price: parseMoneyInput(value),
                 }))
               }
             />
@@ -652,30 +685,24 @@ export function LotFormV2({ templates, onSave, onCancel }) {
           </label>
           <label>
             <span>Sale price</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={formatMoneyInput(lotFields.sale_price)}
-              onChange={(event) =>
+            <MoneyInput
+              value={lotFields.sale_price}
+              onValueChange={(value) =>
                 setLotFields((current) => ({
                   ...current,
-                  sale_price: parseMoneyInput(event.target.value),
+                  sale_price: parseMoneyInput(value),
                 }))
               }
             />
           </label>
           <label>
             <span>Sale costs (commission + shipping to buyer)</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={formatMoneyInput(lotFields.selling_fees)}
-              onChange={(event) =>
+            <MoneyInput
+              value={lotFields.selling_fees}
+              onValueChange={(value) =>
                 setLotFields((current) => ({
                   ...current,
-                  selling_fees: parseMoneyInput(event.target.value),
+                  selling_fees: parseMoneyInput(value),
                 }))
               }
             />
@@ -769,26 +796,35 @@ export function LotFormV2({ templates, onSave, onCancel }) {
               </label>
               <label>
                 <span>Purchase price</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formatMoneyInput(item.purchase_price)}
-                  onChange={(event) =>
-                    updateItem(index, 'purchase_price', parseMoneyInput(event.target.value))
+                <MoneyInput
+                  value={item.purchase_price}
+                  onValueChange={(value) =>
+                    updateItem(index, 'purchase_price', parseMoneyInput(value))
                   }
                   required
                 />
               </label>
               <label>
-                <span>Target sale price</span>
+                <span>Allocated lot shipping</span>
+                <input readOnly value={formatMoneyInput(shippingAllocation[index] || 0)} />
+              </label>
+              <label>
+                <span>Final price</span>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formatMoneyInput(item.target_sale_price)}
-                  onChange={(event) =>
-                    updateItem(index, 'target_sale_price', parseMoneyInput(event.target.value))
+                  readOnly
+                  value={formatMoneyInput(
+                    Number(item.purchase_price || 0) +
+                      Number(item.seller_to_forwarder_cost || 0) +
+                      Number(shippingAllocation[index] || 0),
+                  )}
+                />
+              </label>
+              <label>
+                <span>Target sale price</span>
+                <MoneyInput
+                  value={item.target_sale_price}
+                  onValueChange={(value) =>
+                    updateItem(index, 'target_sale_price', parseMoneyInput(value))
                   }
                 />
               </label>
@@ -950,12 +986,9 @@ export function LotSettingsForm({ lot, templates, onSave, onCancel }) {
         </label>{' '}
         <label>
           <span>Purchase price</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.purchase_price)}
-            onChange={(event) => updateField('purchase_price', parseMoneyInput(event.target.value))}
+          <MoneyInput
+            value={form.purchase_price}
+            onValueChange={(value) => updateField('purchase_price', parseMoneyInput(value))}
             required
           />
         </label>
@@ -963,26 +996,27 @@ export function LotSettingsForm({ lot, templates, onSave, onCancel }) {
           <span>
             {currencyOptions[currencySettings.currency].symbol} Shipping cost (seller to MYUS)
           </span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.seller_to_forwarder_cost)}
-            onChange={(event) =>
-              updateField('seller_to_forwarder_cost', parseMoneyInput(event.target.value))
+          <MoneyInput
+            value={form.seller_to_forwarder_cost}
+            onValueChange={(value) =>
+              updateField('seller_to_forwarder_cost', parseMoneyInput(value))
             }
           />
         </label>
         <label>
-          <span>Target sale price</span>
+          <span>Final price</span>
           <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.target_sale_price)}
-            onChange={(event) =>
-              updateField('target_sale_price', parseMoneyInput(event.target.value))
-            }
+            readOnly
+            value={formatMoneyInput(
+              Number(form.purchase_price || 0) + Number(form.seller_to_forwarder_cost || 0),
+            )}
+          />
+        </label>
+        <label>
+          <span>Target sale price</span>
+          <MoneyInput
+            value={form.target_sale_price}
+            onValueChange={(value) => updateField('target_sale_price', parseMoneyInput(value))}
           />
         </label>
         <label>
@@ -995,22 +1029,16 @@ export function LotSettingsForm({ lot, templates, onSave, onCancel }) {
         </label>
         <label>
           <span>Sale price</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.sale_price)}
-            onChange={(event) => updateField('sale_price', parseMoneyInput(event.target.value))}
+          <MoneyInput
+            value={form.sale_price}
+            onValueChange={(value) => updateField('sale_price', parseMoneyInput(value))}
           />
         </label>
         <label>
           <span>Sale costs (commission + shipping to buyer)</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.selling_fees)}
-            onChange={(event) => updateField('selling_fees', parseMoneyInput(event.target.value))}
+          <MoneyInput
+            value={form.selling_fees}
+            onValueChange={(value) => updateField('selling_fees', parseMoneyInput(value))}
           />
         </label>
       </div>

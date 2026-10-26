@@ -135,4 +135,6 @@ $env:ADRAFTEO_PGLITE_MODULE = "$env:TEMP/adrafteo-sql-validation/node_modules/@e
 node tests/inventory-sql.mjs
 ```
 
-Before deploying the updated frontend, run `supabase/inventory.sql` in the Supabase SQL Editor to install the new shipment RPCs. Historical costs are not automatically rewritten: review any past shipment in which the same acquisition shipping may have been entered twice.
+Before deploying the updated frontend, run `supabase/inventory.sql` in the Supabase SQL Editor to install the shipment RPCs and lot-shipping allocation triggers. This adds an allocated lot shipping share to each item and recalculates existing lot totals. Re-running the script recomputes shares rather than adding them again. Shipping is shared per physical unit: a line of quantity 2 receives twice the share of a line of quantity 1. Item final prices include their base purchase price, individual acquisition shipping, allocated lot shipping and shipment costs. The lot total is the sum of its item final prices.
+
+Review any past shipment in which the same acquisition shipping may have been entered twice; that separate historical duplication cannot be identified automatically.

@@ -1,9 +1,9 @@
+import { MoneyInput } from './MoneyInput'
 import { useState } from 'react'
 import {
   currencyOptions,
   currencySettings,
   formatMoney,
-  formatMoneyInput,
   parseMoneyInput,
   getItemQuantity,
   getItemUnitValue,
@@ -114,48 +114,30 @@ export function ShipmentForm({ items, lots, shipments, allocations, onSave, onCa
             {currencyOptions[currencySettings.currency].symbol} Additional store-to-forwarder
             shipping
           </span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.store_to_forwarder)}
-            onChange={(event) =>
-              updateField('store_to_forwarder', parseMoneyInput(event.target.value))
-            }
+          <MoneyInput
+            value={form.store_to_forwarder}
+            onValueChange={(value) => updateField('store_to_forwarder', parseMoneyInput(value))}
           />
         </label>
         <label>
           <span>{currencyOptions[currencySettings.currency].symbol} Forwarder to home</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.forwarder_to_home)}
-            onChange={(event) =>
-              updateField('forwarder_to_home', parseMoneyInput(event.target.value))
-            }
+          <MoneyInput
+            value={form.forwarder_to_home}
+            onValueChange={(value) => updateField('forwarder_to_home', parseMoneyInput(value))}
           />
         </label>
         <label>
           <span>{currencyOptions[currencySettings.currency].symbol} Monthly subscription</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.monthly_subscription)}
-            onChange={(event) =>
-              updateField('monthly_subscription', parseMoneyInput(event.target.value))
-            }
+          <MoneyInput
+            value={form.monthly_subscription}
+            onValueChange={(value) => updateField('monthly_subscription', parseMoneyInput(value))}
           />
         </label>
         <label>
           <span>{currencyOptions[currencySettings.currency].symbol} Additional fees</span>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={formatMoneyInput(form.extra_cost)}
-            onChange={(event) => updateField('extra_cost', parseMoneyInput(event.target.value))}
+          <MoneyInput
+            value={form.extra_cost}
+            onValueChange={(value) => updateField('extra_cost', parseMoneyInput(value))}
           />
         </label>
       </div>
@@ -176,12 +158,9 @@ export function ShipmentForm({ items, lots, shipments, allocations, onSave, onCa
           {form.vat_mode === 'manual' ? (
             <label>
               <span>{currencyOptions[currencySettings.currency].symbol} Total VAT</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={formatMoneyInput(form.vat_amount)}
-                onChange={(event) => updateField('vat_amount', parseMoneyInput(event.target.value))}
+              <MoneyInput
+                value={form.vat_amount}
+                onValueChange={(value) => updateField('vat_amount', parseMoneyInput(value))}
               />
             </label>
           ) : null}
@@ -189,13 +168,10 @@ export function ShipmentForm({ items, lots, shipments, allocations, onSave, onCa
             <>
               <label>
                 <span>{currencyOptions[currencySettings.currency].symbol} Taxable base</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                <MoneyInput
                   placeholder={productValue.toFixed(2)}
-                  value={formatMoneyInput(form.vat_base)}
-                  onChange={(event) => updateField('vat_base', parseMoneyInput(event.target.value))}
+                  value={form.vat_base}
+                  onValueChange={(value) => updateField('vat_base', parseMoneyInput(value))}
                 />
               </label>
               <label>
@@ -355,13 +331,10 @@ function ShipmentItemRow({
       {alreadyAllocated ? <span className="inventory-pill">Already assigned</span> : null}
       <span>{formatMoney(allocation)}</span>
       {manual ? (
-        <input
+        <MoneyInput
           className="shipment-manual-cost"
-          type="number"
-          min="0"
-          step="0.01"
-          value={formatMoneyInput(manualCost)}
-          onChange={(event) => onManualCost(parseMoneyInput(event.target.value))}
+          value={manualCost}
+          onValueChange={(value) => onManualCost(parseMoneyInput(value))}
           placeholder="Manual cost"
           aria-label={`Allocated cost for ${item.name}`}
         />

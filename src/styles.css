@@ -3797,6 +3797,130 @@ select {
   gap: 24px !important;
 }
 
+.app-shell .overview-columns {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.app-shell .overview-columns .overview-section__heading {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 76px;
+}
+
+.app-shell .overview-columns .platform-performance__row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 12px;
+}
+
+.app-shell .overview-columns .platform-performance__row strong {
+  overflow-wrap: anywhere;
+}
+
+.app-shell .overview-columns .platform-performance__row span {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.app-shell .overview-columns .platform-performance__row b {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.app-shell .overview-columns .workflow-list button,
+.app-shell .overview-columns .workflow-list > div {
+  flex-wrap: wrap;
+  gap: 7px 12px;
+}
+
+.app-shell .inventory-value-chart {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 22px;
+}
+
+.app-shell .inventory-value-chart__visual {
+  position: relative;
+  width: 100%;
+  max-width: 240px;
+  margin: 0 auto;
+}
+
+.app-shell .inventory-value-chart__visual svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.app-shell .inventory-value-chart__total {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 24%;
+  text-align: center;
+}
+
+.app-shell .inventory-value-chart__total span {
+  color: #747887;
+  font-size: 0.65rem;
+}
+
+.app-shell .inventory-value-chart__total strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: #333745;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(0.85rem, 1.2vw, 1.25rem);
+  font-weight: 500;
+}
+
+.app-shell .inventory-value-chart__entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e4dce0;
+  font-size: 0.75rem;
+}
+
+.app-shell .inventory-value-chart__entry > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #333745;
+}
+
+.app-shell .inventory-value-chart__entry i {
+  flex: 0 0 9px;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.app-shell .inventory-value-chart__entry strong {
+  color: #333745;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.app-shell .inventory-value-chart__entry small {
+  grid-column: 2;
+  color: #747887;
+  text-align: right;
+}
+
+.app-shell .inventory-value-chart__note {
+  margin: 12px 0 0;
+  color: #747887;
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
 .app-shell .overview-section {
   display: block !important;
   min-width: 0;
@@ -3828,11 +3952,20 @@ select {
   .app-shell .overview-charts {
     grid-template-columns: 1fr !important;
   }
+
+  .app-shell .overview-columns .overview-section__heading {
+    min-height: 0;
+  }
 }
 
 @media (max-width: 560px) {
   .app-shell .overview-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .app-shell .inventory-value-chart {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
 }
@@ -3916,6 +4049,50 @@ select {
   gap: 16px;
   flex-wrap: wrap;
   margin-top: 9px;
+  color: #747887;
+  font-size: 0.7rem;
+}
+
+.app-shell .comparison-chart__legend > span,
+.app-shell .status-chart__row > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-shell .comparison-chart__legend-swatch,
+.app-shell .status-chart__swatch {
+  display: inline-block;
+  flex: 0 0 9px;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.app-shell .comparison-chart__legend-swatch--kept {
+  background: #b0413e;
+}
+
+.app-shell .comparison-chart__legend-swatch--sold,
+.app-shell .comparison-chart__legend-swatch--recovered {
+  background: #6a994e;
+}
+
+.app-shell .comparison-chart__legend-swatch--listed {
+  background: #8f78a8;
+}
+
+.app-shell .comparison-chart__legend-swatch--to_list {
+  background: #d8aa35;
+}
+
+.app-shell .comparison-chart__legend-swatch--in_stock {
+  background: #72a7d1;
+}
+
+.app-shell .comparison-chart__legend-swatch--in_transit,
+.app-shell .comparison-chart__legend-swatch--potential {
+  background: #ffcb47;
 }
 
 .inventory-page {

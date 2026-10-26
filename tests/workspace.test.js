@@ -4,6 +4,7 @@ import {
   isItemInStock,
   getItemProfit,
   getItemRoi,
+  getItemEffectiveBasePurchasePrice,
   allocateShipmentCosts,
   allocateAmountByQuantities,
   getShipmentTotal,
@@ -98,6 +99,27 @@ test('lot allocation preserves the purchase total in cents with decimal-comma in
   assert.deepEqual(allocateAmountByQuantities('100,00', [2, 1]), ['66.67', '33.33'])
 })
 
+test('lot shipping shares preserve cents and stay nonnegative for many small allocations', () => {
+  assert.deepEqual(allocateAmountByQuantities('10.01', [2, 1]), ['6.67', '3.34'])
+  const shares = allocateAmountByQuantities('0.50', Array(100).fill(1))
+  assert.ok(shares.every((share) => Number(share) >= 0))
+  assert.equal(
+    shares.reduce((sum, share) => sum + Math.round(Number(share) * 100), 0),
+    50,
+  )
+})
+
+test('effective acquisition cost includes the allocated lot shipping once', () => {
+  assert.equal(
+    getItemEffectiveBasePurchasePrice({
+      base_purchase_price: 60,
+      seller_to_forwarder_cost: 2,
+      lot_shipping_cost: 6.67,
+    }),
+    68.67,
+  )
+})
+
 test('variable generation preserves item overrides and multiline cross defaults', () => {
   assert.deepEqual(extractVariables('[Brand] [Brand] [Size]'), ['Brand', 'Size'])
   assert.equal(getInitialVariableValue('Brand', { Brand: 'Nike' }, { brand: 'Default' }), 'Nike')
@@ -112,5 +134,15 @@ test('currency entry converts back to stored EUR', () => {
   setCurrencySettings('GBP', { EUR: 1, GBP: 0.8, USD: 1.1 })
   assert.equal(formatMoneyInput(100), '80.00')
   assert.equal(parseMoneyInput('80'), '100.00')
+  assert.equal(parseMoneyInput('25.22'), '31.53')
+  assert.equal(parseMoneyInput('25,22'), '31.53')
   setCurrencySettings('EUR', { EUR: 1, GBP: 0.8, USD: 1.1 })
+})
+
+test('unfinished decimal entry converts safely without forcing display text', () => {
+  assert.equal(parseMoneyInput(''), '')
+  assert.equal(parseMoneyInput('.'), '')
+  assert.equal(parseMoneyInput(','), '')
+  assert.equal(parseMoneyInput('25.'), '25.00')
+  assert.equal(parseMoneyInput('25,'), '25.00')
 })

@@ -103,6 +103,7 @@
         add column if not exists base_purchase_price numeric(12, 2) not null default 0,
         add column if not exists final_price numeric(12, 2) not null default 0,
         add column if not exists inbound_cost numeric(12, 2) not null default 0,
+        add column if not exists lot_shipping_cost numeric(12, 2) not null default 0 check (lot_shipping_cost >= 0),
         add column if not exists seller_to_forwarder_cost numeric(12, 2) not null default 0;
 
     update public.inventory_items
@@ -110,8 +111,8 @@
     where quantity is null or quantity < 1;
 
     update public.inventory_items
-    set base_purchase_price = greatest(0, purchase_price - seller_to_forwarder_cost)
-    where base_purchase_price = 0 and purchase_price <> 0 and inbound_cost = 0;
+    set base_purchase_price = greatest(0, purchase_price - seller_to_forwarder_cost - lot_shipping_cost - inbound_cost)
+    where base_purchase_price = 0 and purchase_price <> seller_to_forwarder_cost + lot_shipping_cost + inbound_cost;
 
     update public.inventory_items
     set final_price = purchase_price
@@ -288,15 +289,15 @@ begin
 
   update public.inventory_items i set
     inbound_cost = i.inbound_cost + a.allocated_cost,
-    purchase_price = i.base_purchase_price + i.seller_to_forwarder_cost + i.inbound_cost + a.allocated_cost,
-    final_price = i.base_purchase_price + i.seller_to_forwarder_cost + i.inbound_cost + a.allocated_cost,
+    purchase_price = i.base_purchase_price + i.seller_to_forwarder_cost + i.lot_shipping_cost + i.inbound_cost + a.allocated_cost,
+    final_price = i.base_purchase_price + i.seller_to_forwarder_cost + i.lot_shipping_cost + i.inbound_cost + a.allocated_cost,
     updated_at = now()
   from public.inventory_shipment_allocations a
   where a.shipment_id = saved_id and a.item_id = i.id and i.user_id = owner_id;
 
   update public.inventory_lots l set
-    purchase_price = l.seller_to_forwarder_cost + coalesce((select sum(i.purchase_price) from public.inventory_items i where i.lot_id = l.id and i.user_id = owner_id), 0),
-    final_price = l.seller_to_forwarder_cost + coalesce((select sum(i.purchase_price) from public.inventory_items i where i.lot_id = l.id and i.user_id = owner_id), 0),
+    purchase_price = coalesce((select sum(i.purchase_price) from public.inventory_items i where i.lot_id = l.id and i.user_id = owner_id), 0),
+    final_price = coalesce((select sum(i.purchase_price) from public.inventory_items i where i.lot_id = l.id and i.user_id = owner_id), 0),
     updated_at = now()
   where l.id = any(touched_lots) and l.user_id = owner_id;
   return public.inventory_workspace_snapshot();
@@ -325,16 +326,16 @@ begin
 
   update public.inventory_items i set
     inbound_cost = greatest(0, i.inbound_cost - a.allocated_cost),
-    purchase_price = i.base_purchase_price + i.seller_to_forwarder_cost + greatest(0, i.inbound_cost - a.allocated_cost),
-    final_price = i.base_purchase_price + i.seller_to_forwarder_cost + greatest(0, i.inbound_cost - a.allocated_cost),
+    purchase_price = i.base_purchase_price + i.seller_to_forwarder_cost + i.lot_shipping_cost + greatest(0, i.inbound_cost - a.allocated_cost),
+    final_price = i.base_purchase_price + i.seller_to_forwarder_cost + i.lot_shipping_cost + greatest(0, i.inbound_cost - a.allocated_cost),
     updated_at = now()
   from public.inventory_shipment_allocations a
   where a.shipment_id = delete_inventory_shipment.shipment_id and a.item_id = i.id and i.user_id = owner_id;
 
   delete from public.inventory_shipments s where s.id = delete_inventory_shipment.shipment_id and s.user_id = owner_id;
   update public.inventory_lots l set
-    purchase_price = l.seller_to_forwarder_cost + coalesce((select sum(i.purchase_price) from public.inventory_items i where i.lot_id = l.id and i.user_id = owner_id), 0),
-    final_price = l.seller_to_forwarder_cost + coalesce((select sum(i.purchase_price) from public.inventory_items i where i.lot_id = l.id and i.user_id = owner_id), 0),
+    purchase_price = coalesce((select sum(i.purchase_price) from public.inventory_items i where i.lot_id = l.id and i.user_id = owner_id), 0),
+    final_price = coalesce((select sum(i.purchase_price) from public.inventory_items i where i.lot_id = l.id and i.user_id = owner_id), 0),
     updated_at = now()
   where l.id = any(touched_lots) and l.user_id = owner_id;
   return public.inventory_workspace_snapshot();
@@ -359,3 +360,131 @@ grant execute on function public.delete_inventory_shipment(uuid) to authenticate
 
 comment on column public.inventory_items.selling_fees is 'Total sale costs paid by the seller: marketplace commission and outbound shipping to the buyer, stored in EUR.';
 comment on column public.inventory_items.seller_to_forwarder_cost is 'Acquisition shipping to the forwarder, already included in purchase_price; never a sale commission.';
+
+-- The lot shipping total is metadata; its allocated shares belong in item costs.
+-- This function runs with the caller's permissions and RLS, including when called by triggers.
+create or replace function public.recalculate_inventory_lot(p_lot_id uuid)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  shipping numeric;
+begin
+  select l.seller_to_forwarder_cost into shipping
+  from public.inventory_lots l where l.id = p_lot_id for update;
+  -- A cascading lot deletion has already removed the parent row.
+  if not found then return; end if;
+
+  with units as (
+    select i.id,
+      sum(i.quantity) over () as total_units,
+      sum(i.quantity) over (order by i.created_at, i.id rows unbounded preceding) as cumulative_units,
+      i.quantity
+    from public.inventory_items i where i.lot_id = p_lot_id
+  ), shares as (
+    select id, (round(shipping * 100 * cumulative_units / total_units)
+      - round(shipping * 100 * (cumulative_units - quantity) / total_units)) / 100 as cost
+    from units
+  )
+  update public.inventory_items i set
+    lot_shipping_cost = s.cost,
+    purchase_price = i.base_purchase_price + i.seller_to_forwarder_cost + i.inbound_cost + s.cost,
+    final_price = i.base_purchase_price + i.seller_to_forwarder_cost + i.inbound_cost + s.cost,
+    updated_at = now()
+  from shares s where i.id = s.id and (
+    i.lot_shipping_cost is distinct from s.cost or
+    i.purchase_price is distinct from i.base_purchase_price + i.seller_to_forwarder_cost + i.inbound_cost + s.cost or
+    i.final_price is distinct from i.base_purchase_price + i.seller_to_forwarder_cost + i.inbound_cost + s.cost
+  );
+
+  update public.inventory_lots l set
+    purchase_price = coalesce((select sum(i.purchase_price) from public.inventory_items i where i.lot_id = l.id), 0),
+    final_price = coalesce((select sum(i.final_price) from public.inventory_items i where i.lot_id = l.id), 0),
+    updated_at = now()
+  where l.id = p_lot_id;
+end;
+$$;
+
+create or replace function public.sync_inventory_item_lot_costs()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if tg_op in ('UPDATE', 'DELETE') and old.lot_id is not null then
+    perform public.recalculate_inventory_lot(old.lot_id);
+  end if;
+  if tg_op in ('INSERT', 'UPDATE') and new.lot_id is not null
+    and (tg_op = 'INSERT' or new.lot_id is distinct from old.lot_id) then
+    perform public.recalculate_inventory_lot(new.lot_id);
+  end if;
+  if tg_op = 'UPDATE' and new.lot_id is null and old.lot_id is not null then
+    update public.inventory_items set lot_shipping_cost = 0,
+      purchase_price = base_purchase_price + seller_to_forwarder_cost + inbound_cost,
+      final_price = base_purchase_price + seller_to_forwarder_cost + inbound_cost
+    where id = new.id;
+  end if;
+  return null;
+end;
+$$;
+
+create or replace function public.sync_inventory_lot_shipping()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+  requested_base numeric;
+  existing_base numeric;
+begin
+  -- Preserve the lot editor's purchase-price action, excluding shipping and shipment costs.
+  select coalesce(sum(i.base_purchase_price), 0),
+    new.purchase_price - new.seller_to_forwarder_cost - coalesce(sum(i.seller_to_forwarder_cost + i.inbound_cost), 0)
+  into existing_base, requested_base
+  from public.inventory_items i where i.lot_id = new.id;
+  if new.purchase_price is not distinct from old.purchase_price then requested_base := existing_base; end if;
+  if requested_base < 0 then raise exception 'Lot purchase price cannot be less than its acquisition costs'; end if;
+  if requested_base <> existing_base then
+    with units as (
+      select i.id, i.quantity, sum(i.quantity) over () as total_units,
+        sum(i.quantity) over (order by i.created_at, i.id rows unbounded preceding) as cumulative_units
+      from public.inventory_items i where i.lot_id = new.id
+    )
+    update public.inventory_items i set base_purchase_price = (
+      round(requested_base * 100 * u.cumulative_units / u.total_units)
+      - round(requested_base * 100 * (u.cumulative_units - u.quantity) / u.total_units)
+    ) / 100 from units u where i.id = u.id;
+  end if;
+  perform public.recalculate_inventory_lot(new.id);
+  return null;
+end;
+$$;
+
+drop trigger if exists inventory_items_sync_lot_costs on public.inventory_items;
+create trigger inventory_items_sync_lot_costs
+  after insert or delete or update of quantity, lot_id, base_purchase_price, seller_to_forwarder_cost, inbound_cost
+  on public.inventory_items for each row execute function public.sync_inventory_item_lot_costs();
+
+drop trigger if exists inventory_lots_sync_shipping on public.inventory_lots;
+create trigger inventory_lots_sync_shipping after update of seller_to_forwarder_cost
+  on public.inventory_lots for each row execute function public.sync_inventory_lot_shipping();
+
+revoke all on function public.recalculate_inventory_lot(uuid) from public;
+revoke all on function public.sync_inventory_item_lot_costs() from public;
+revoke all on function public.sync_inventory_lot_shipping() from public;
+grant execute on function public.recalculate_inventory_lot(uuid) to authenticated;
+
+-- Repair existing lots once; repeating the migration recomputes shares, never adds them again.
+do $$
+declare lot_record record;
+begin
+  for lot_record in select id from public.inventory_lots order by id loop
+    perform public.recalculate_inventory_lot(lot_record.id);
+  end loop;
+end;
+$$;
+comment on column public.inventory_items.lot_shipping_cost is 'Quantity-based share of the parent lot shipping total, included exactly once in purchase_price and final_price.';

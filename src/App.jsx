@@ -343,6 +343,19 @@ function App() {
     setShowCrossVariables(false)
   }
 
+  const refreshInventory = async () => {
+    const { data, error: refreshError } = await supabase.rpc('inventory_workspace_snapshot')
+    if (refreshError) {
+      setError(refreshError.message)
+      return false
+    }
+    setInventoryItems(data.items)
+    setInventoryLots(data.lots)
+    setInventoryShipments(data.shipments)
+    setShipmentAllocations(data.allocations)
+    return true
+  }
+
   const handleSaveInventoryItem = async (draft) => {
     if (!session?.user || !draft.name) {
       return
@@ -369,9 +382,7 @@ function App() {
       return
     }
 
-    setInventoryItems((current) =>
-      id ? current.map((item) => (item.id === data.id ? data : item)) : [data, ...current],
-    )
+    await refreshInventory()
     if (id) {
       setInventoryEditor(null)
     }
@@ -395,7 +406,7 @@ function App() {
       return
     }
 
-    setInventoryItems((current) => current.filter((item) => item.id !== id))
+    await refreshInventory()
   }
 
   const handleDuplicateInventoryItem = (item) => {
@@ -445,8 +456,7 @@ function App() {
       return
     }
 
-    setInventoryLots((current) => [duplicatedLot, ...current])
-    setInventoryItems((current) => [...savedItems, ...current])
+    await refreshInventory()
   }
 
   const handleSaveInventoryLot = async ({ name, notes, lotFields, items }) => {
@@ -454,9 +464,8 @@ function App() {
       return
     }
 
-    const itemShippingTotal = items.reduce(
-      (total, item) => total + Number(item.seller_to_forwarder_cost || 0),
-      0,
+    const lotFinalPrice = Number(
+      items.reduce((total, item) => total + Number(item.purchase_price || 0), 0).toFixed(2),
     )
     const { data: lot, error: lotError } = await supabase
       .from('inventory_lots')
@@ -464,9 +473,8 @@ function App() {
         name,
         notes,
         ...lotFields,
-        purchase_price: Number(
-          (Number(lotFields.purchase_price || 0) + itemShippingTotal).toFixed(2),
-        ),
+        purchase_price: lotFinalPrice,
+        final_price: lotFinalPrice,
         user_id: session.user.id,
       })
       .select()
@@ -488,8 +496,7 @@ function App() {
       return
     }
 
-    setInventoryLots((current) => [lot, ...current])
-    setInventoryItems((current) => [...savedItems, ...current])
+    await refreshInventory()
     setLotEditor(null)
   }
 
@@ -508,7 +515,7 @@ function App() {
       return
     }
 
-    setInventoryLots((current) => current.map((lot) => (lot.id === data.id ? data : lot)))
+    await refreshInventory()
     setLotEditor(null)
   }
 

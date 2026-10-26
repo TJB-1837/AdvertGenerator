@@ -36,8 +36,11 @@ export function formatMoneyInput(value) {
 }
 
 export function parseMoneyInput(value) {
-  if (value === '') return ''
-  return (Number(value) / getCurrencyRate()).toFixed(2)
+  const normalized = String(value).replace(',', '.')
+  if (normalized === '' || normalized === '.') return ''
+  const amount = Number(normalized) / getCurrencyRate()
+  const rounded = Math.round((amount + Number.EPSILON * Math.max(1, Math.abs(amount))) * 100) / 100
+  return rounded.toFixed(2)
 }
 
 export function formatDate(value, dateFormat = 'DD/MM/YYYY') {
@@ -93,7 +96,11 @@ export function getItemSellerToForwarderCost(item) {
 }
 
 export function getItemEffectiveBasePurchasePrice(item) {
-  return getItemBasePurchasePrice(item) + getItemSellerToForwarderCost(item)
+  return (
+    getItemBasePurchasePrice(item) +
+    getItemSellerToForwarderCost(item) +
+    Number(item.lot_shipping_cost || 0)
+  )
 }
 
 export function getItemUnitValue(item) {
@@ -162,13 +169,16 @@ export function allocateAmountByQuantities(total, quantities) {
   const normalizedQuantities = quantities.map((quantity) => Math.max(1, Number(quantity) || 1))
   const totalQuantity = normalizedQuantities.reduce((sum, quantity) => sum + quantity, 0)
   let allocatedCents = 0
+  let cumulativeQuantity = 0
 
   return normalizedQuantities.map((itemQuantity, index) => {
-    const amount =
+    cumulativeQuantity += itemQuantity
+    const cumulativeCents =
       index === quantities.length - 1
-        ? totalCents - allocatedCents
-        : Math.round((totalCents * itemQuantity) / totalQuantity)
-    allocatedCents += amount
+        ? totalCents
+        : Math.round((totalCents * cumulativeQuantity) / totalQuantity)
+    const amount = cumulativeCents - allocatedCents
+    allocatedCents = cumulativeCents
     return (amount / 100).toFixed(2)
   })
 }

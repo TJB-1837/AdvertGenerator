@@ -37,6 +37,15 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 
 ## Implemented
 
+- Lot acquisition shipping is now shared across child items by physical quantity and included once in each final price. Create-lot forms preview the shares and final totals; database triggers keep allocations and lot totals consistent after shipping edits, quantity changes, item additions/removals and shipment changes. Re-run supabase/inventory.sql to add lot_shipping_cost and repair existing lots without accumulating fees on migration reruns.
+- MoneyInput now emits an immutable text value so deferred form-state updates cannot read a cleared or reformatted DOM value during lot price entry.
+
+- Price inputs now preserve in-progress decimal text and the cursor while typing, accept either a comma or a dot, and format to two decimals only on blur. A shared MoneyInput covers item, lot and shipment forms while keeping EUR conversion and form resets; conversion rounding handles half-cent floating-point boundaries.
+
+- Reorganised Overview into three upper sections (Marketplace performance, Inventory by status, next actions) and two lower charts (money spent vs recovered and a purchase-value donut for kept, to-resell and sold items). The donut includes acquisition costs, classifies transit items as to-resell, and handles empty data; sections stack on smaller screens.
+
+- Added visible color markers beside all Overview chart labels, including Kept through In transit, Realised and Potential. Legend styles now apply at every screen width, and inventory-status colors match the cash-flow chart.
+
 - Split the active React code into pages, components and shared business helpers; removed unused legacy lot components. See README for the source map.
 - Unified the stock definition across Overview and Inventory: kept, in-transit and sold items are excluded.
 - Clarified sale costs as marketplace commission plus seller-paid shipping to the buyer; acquisition shipping remains separate. Shipment forms no longer prefill acquisition shipping that is already included in purchase cost.

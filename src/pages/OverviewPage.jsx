@@ -53,6 +53,7 @@ function ComparisonBarChart({ invested, recovered, potential, items }) {
             <span key={status}>
               <i
                 className={`comparison-chart__legend-swatch comparison-chart__legend-swatch--${status}`}
+                aria-hidden="true"
               />
               {statusLabels[status]} {formatMoney(value)} ·{' '}
               {invested > 0 ? ((value / invested) * 100).toFixed(1) : '0.0'}%
@@ -77,14 +78,72 @@ function ComparisonBarChart({ invested, recovered, potential, items }) {
         </div>
         <div className="comparison-chart__legend">
           <span>
-            <i className="comparison-chart__legend-swatch comparison-chart__legend-swatch--recovered" />
+            <i className="comparison-chart__legend-swatch comparison-chart__legend-swatch--recovered" aria-hidden="true" />
             Realised {formatMoney(recovered)}
           </span>
           <span>
-            <i className="comparison-chart__legend-swatch comparison-chart__legend-swatch--potential" />
+            <i className="comparison-chart__legend-swatch comparison-chart__legend-swatch--potential" aria-hidden="true" />
             Potential {formatMoney(potential)}
           </span>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function InventoryValueChart({ items }) {
+  const categories = [
+    { key: 'kept', label: 'Kept', color: '#b0413e', value: 0 },
+    { key: 'resale', label: 'To resell', color: '#ffcb47', value: 0 },
+    { key: 'sold', label: 'Sold', color: '#6a994e', value: 0 },
+  ]
+  for (const item of items) {
+    const category = item.status === 'kept' ? 0 : item.status === 'sold' ? 2 : 1
+    categories[category].value += Math.max(0, Number(item.purchase_price) || 0)
+  }
+  const total = categories.reduce((sum, category) => sum + category.value, 0)
+  const circumference = 2 * Math.PI * 64
+  let offset = 0
+
+  return (
+    <div className="inventory-value-chart">
+      <div className="inventory-value-chart__visual">
+        <svg viewBox="0 0 180 180" role="img" aria-label={
+          total > 0
+            ? categories.map((category) => category.label + ': ' + formatMoney(category.value)).join(', ')
+            : 'No purchase value recorded yet'
+        }>
+          <circle cx="90" cy="90" r="64" fill="none" stroke="#eee7e9" strokeWidth="28" />
+          {total > 0 ? categories.map((category) => {
+            const length = category.value / total * circumference
+            const start = offset
+            offset += length
+            return category.value > 0 ? (
+              <circle key={category.key} cx="90" cy="90" r="64" fill="none"
+                stroke={category.color} strokeWidth="28"
+                strokeDasharray={length + ' ' + circumference}
+                strokeDashoffset={-start} transform="rotate(-90 90 90)" />
+            ) : null
+          }) : null}
+        </svg>
+        <div className="inventory-value-chart__total" aria-hidden="true">
+          <span>Purchase value</span>
+          <strong>{formatMoney(total)}</strong>
+        </div>
+      </div>
+      <div className="inventory-value-chart__details">
+        <div className="inventory-value-chart__legend">
+          {categories.map((category) => (
+            <div className="inventory-value-chart__entry" key={category.key}>
+              <span><i style={{ background: category.color }} aria-hidden="true" />{category.label}</span>
+              <strong>{formatMoney(category.value)}</strong>
+              <small>{total > 0 ? (category.value / total * 100).toFixed(1) : '0.0'}%</small>
+            </div>
+          ))}
+        </div>
+        <p className="inventory-value-chart__note">
+          {total > 0 ? 'Purchase costs, including acquisition fees. To resell includes items in transit.' : 'Add purchase values to see how your investment is distributed.'}
+        </p>
       </div>
     </div>
   )
@@ -115,11 +174,11 @@ export function OverviewPage({ items, templates, onOpenTemplates, onOpenInventor
   })
   const statusStats = [
     { label: 'Kept', status: 'kept', color: '#b0413e' },
-    { label: 'In stock', status: 'in_stock', color: '#6a994e' },
-    { label: 'To list', status: 'to_list', color: '#ffcb47' },
-    { label: 'Listed', status: 'listed', color: '#333745' },
-    { label: 'In transit', status: 'in_transit', color: '#9b6b9e' },
-    { label: 'Sold', status: 'sold', color: '#b0413e' },
+    { label: 'In stock', status: 'in_stock', color: '#72a7d1' },
+    { label: 'To list', status: 'to_list', color: '#d8aa35' },
+    { label: 'Listed', status: 'listed', color: '#8f78a8' },
+    { label: 'In transit', status: 'in_transit', color: '#ffcb47' },
+    { label: 'Sold', status: 'sold', color: '#6a994e' },
   ].map((entry) => ({
     ...entry,
     value: items.filter((item) => item.status === entry.status).length,
@@ -208,6 +267,35 @@ export function OverviewPage({ items, templates, onOpenTemplates, onOpenInventor
           )}
         </section>
 
+        <section className="overview-section overview-section--status">
+          <div className="overview-section__heading">
+            <div>
+              <p className="eyebrow">Stock flow</p>
+              <h3>Inventory by status</h3>
+            </div>
+            <span>{items.length} items</span>
+          </div>
+          <div className="status-chart">
+            {statusStats.map((entry) => (
+              <div className="status-chart__row" key={entry.status}>
+                <span>
+                  <i className="status-chart__swatch" style={{ background: entry.color }} aria-hidden="true" />
+                  {entry.label}
+                </span>
+                <div className="status-chart__track">
+                  <i
+                    style={{
+                      width: `${(entry.value / statusMax) * 100}%`,
+                      background: entry.color,
+                    }}
+                  />
+                </div>
+                <strong>{entry.value}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="overview-section overview-section--workflow">
           <div className="overview-section__heading">
             <div>
@@ -258,27 +346,11 @@ export function OverviewPage({ items, templates, onOpenTemplates, onOpenInventor
         <section className="overview-section chart-section">
           <div className="overview-section__heading">
             <div>
-              <p className="eyebrow">Stock flow</p>
-              <h3>Inventory by status</h3>
+              <p className="eyebrow">Invested capital</p>
+              <h3>Purchase value breakdown</h3>
             </div>
-            <span>{items.length} items</span>
           </div>
-          <div className="status-chart">
-            {statusStats.map((entry) => (
-              <div className="status-chart__row" key={entry.status}>
-                <span>{entry.label}</span>
-                <div className="status-chart__track">
-                  <i
-                    style={{
-                      width: `${(entry.value / statusMax) * 100}%`,
-                      background: entry.color,
-                    }}
-                  />
-                </div>
-                <strong>{entry.value}</strong>
-              </div>
-            ))}
-          </div>
+          <InventoryValueChart items={items} />
         </section>
       </div>
 
