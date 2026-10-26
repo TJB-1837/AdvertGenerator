@@ -107,6 +107,23 @@ export function getItemUnitValue(item) {
   return getItemBasePurchasePrice(item) / getItemQuantity(item)
 }
 
+// VAT defaults to goods only: no individual/lot delivery or shipment charges.
+export function getShipmentProductValue(items, selected) {
+  return items.reduce(
+    (total, item) => total + getItemUnitValue(item) * Number(selected[item.id] || 0),
+    0,
+  )
+}
+
+export function getShipmentVatAmount(shipment, productValue) {
+  if (shipment.vat_mode === 'none') return 0
+  if (shipment.vat_mode !== 'automatic') return Number(shipment.vat_amount || 0)
+  const base =
+    shipment.vat_base === '' || shipment.vat_base == null ? productValue : Number(shipment.vat_base)
+  const amount = (base * Number(shipment.vat_rate || 0)) / 100
+  return Math.round((amount + Number.EPSILON * Math.max(1, Math.abs(amount))) * 100) / 100
+}
+
 export function getShipmentTotal(shipment) {
   const transportTotal =
     Number(shipment.store_to_forwarder || 0) +

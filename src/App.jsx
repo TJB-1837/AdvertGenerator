@@ -17,7 +17,7 @@ import { TemplateCard } from './components/Templates'
 import { Modal } from './components/Modal'
 import { TemplateForm, CrossVariablesPanel, GeneratorPanel } from './components/TemplateForms'
 import { InventoryForm, LotFormV2, LotSettingsForm } from './components/InventoryForms'
-import { ShipmentForm } from './components/ShipmentForm'
+import { ShipmentPage } from './pages/ShipmentPage'
 import { OverviewPage } from './pages/OverviewPage'
 import { InventoryPage } from './pages/InventoryPage'
 
@@ -566,17 +566,9 @@ function App() {
 
   const handleSaveShipment = async (draft) => {
     if (!session?.user || !draft.name || !draft.allocations?.length) return
-    const alreadyAssigned = draft.allocations.some((allocation) =>
-      shipmentAllocations.some((existing) => existing.item_id === allocation.item_id),
-    )
-    if (
-      alreadyAssigned &&
-      !window.confirm(
-        'Some selected items are already assigned to a shipment. Add these additional costs?',
-      )
-    )
-      return
-    if (await applyShipmentChange('save_inventory_shipment', { draft })) setShipmentEditor(false)
+    const saved = await applyShipmentChange('save_inventory_shipment', { draft })
+    if (saved) setShipmentEditor(false)
+    return saved
   }
 
   const handleDeleteShipment = async (shipmentId) => {
@@ -672,6 +664,22 @@ function App() {
           setActiveLegalPage(null)
           setShowFaqPage(false)
           setShowPricingPage(true)
+        }}
+      />
+    )
+  }
+
+  if (shipmentEditor) {
+    return (
+      <ShipmentPage
+        items={inventoryItems}
+        lots={inventoryLots}
+        allocations={shipmentAllocations}
+        error={error}
+        onSave={handleSaveShipment}
+        onCancel={() => {
+          setShipmentEditor(false)
+          setError('')
         }}
       />
     )
@@ -935,7 +943,10 @@ function App() {
             dateFormat={dateFormat}
             onCreate={() => setInventoryEditor({})}
             onCreateLot={() => setLotEditor({})}
-            onCreateShipment={() => setShipmentEditor(true)}
+            onCreateShipment={() => {
+              setError('')
+              setShipmentEditor(true)
+            }}
             onEdit={setInventoryEditor}
             onEditLot={setLotEditor}
             onDelete={handleDeleteInventoryItem}
@@ -1028,24 +1039,6 @@ function App() {
               onCancel={() => setLotEditor(null)}
             />
           )}
-        </Modal>
-      ) : null}
-
-      {shipmentEditor ? (
-        <Modal
-          title="Add shipment"
-          subtitle="Allocate delivery, VAT and other inbound costs across physical inventory units."
-          onClose={() => setShipmentEditor(false)}
-          wide
-        >
-          <ShipmentForm
-            items={inventoryItems}
-            lots={inventoryLots}
-            shipments={inventoryShipments}
-            allocations={shipmentAllocations}
-            onSave={handleSaveShipment}
-            onCancel={() => setShipmentEditor(false)}
-          />
         </Modal>
       ) : null}
 

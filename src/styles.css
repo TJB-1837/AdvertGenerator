@@ -3351,6 +3351,51 @@ select {
   color: #b0413e;
 }
 
+.auth-panel .auth-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 44px;
+  border: 1px solid #dadce0;
+  color: #333745;
+  background: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.auth-panel .auth-google svg {
+  flex-shrink: 0;
+}
+
+.auth-panel .auth-google:hover:not(:disabled) {
+  background: #f8f7f8;
+  border-color: #b8bbc3;
+}
+
+.auth-panel button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+  transform: none;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #747887;
+  font-size: 0.75rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e6dfe2;
+}
+
 .account-page {
   width: min(960px, calc(100vw - 32px));
   min-height: 100vh;

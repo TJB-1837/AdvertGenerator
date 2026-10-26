@@ -257,6 +257,7 @@ begin
       raise exception 'Allocated costs must be expressed in cents';
     end if;
     allocated_total := allocated_total + (row_data->>'allocated_cost')::numeric;
+    -- Goods-only base: individual/lot shipping and all shipment costs are excluded.
     selected_value := selected_value + inventory_item.base_purchase_price * selected_quantity / inventory_item.quantity;
     touched_ids := array_append(touched_ids, inventory_item.id);
     if inventory_item.lot_id is not null then touched_lots := array_append(touched_lots, inventory_item.lot_id); end if;

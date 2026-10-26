@@ -37,6 +37,11 @@ Advert generation runs in the browser. It replaces variables such as `[Brand]`, 
 
 ## Implemented
 
+- Added a Google OAuth button to sign-in/sign-up with loading/error handling and a return to the application root through the existing Supabase session listener. Failed/cancelled callbacks reopen authentication and clear OAuth error parameters. Google Cloud OAuth credentials, Supabase provider activation and allowed redirect URLs still need configuration before live Google authentication can be verified; see README. No additional frontend secret or SQL migration is needed.
+
+- Replaced the shipment modal with a dedicated light-themed Import shipment page: searchable inventory and collapsible lots, explicit/partial selection, per-row quantities and current/added/final cost previews, optional forwarding fees, goods-only VAT explanation and custom-base override, three allocation methods with inline validation, additional-cost acknowledgement, and unsaved-input protection. Desktop uses inventory and costs columns; mobile stacks them without nested scrolling.
+- Confirmed with frontend and PostgreSQL regression tests that automatic import VAT defaults to selected base purchase value only, excluding seller-to-forwarder delivery, allocated lot shipping and all shipment fees. A manually entered taxable base explicitly overrides that default. No database behavior change or new migration is required for this page.
+
 - Lot acquisition shipping is now shared across child items by physical quantity and included once in each final price. Create-lot forms preview the shares and final totals; database triggers keep allocations and lot totals consistent after shipping edits, quantity changes, item additions/removals and shipment changes. Re-run supabase/inventory.sql to add lot_shipping_cost and repair existing lots without accumulating fees on migration reruns.
 - MoneyInput now emits an immutable text value so deferred form-state updates cannot read a cleared or reformatted DOM value during lot price entry.
 

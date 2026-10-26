@@ -153,7 +153,7 @@ export function InventoryPage({
             className="button button--ghost button--large"
             onClick={onCreateShipment}
           >
-            + Add shipment
+            + Import shipment
           </button>
           <button
             type="button"
@@ -275,7 +275,7 @@ export function InventoryPage({
       {shipments.length > 0 ? (
         <section className="shipment-history">
           <div className="section-label">
-            <span>Shipments</span>
+            <span>Import shipments</span>
             <small>{shipments.length} recorded</small>
           </div>
           {shipments.map((shipment) => (

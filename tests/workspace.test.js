@@ -8,6 +8,8 @@ import {
   allocateShipmentCosts,
   allocateAmountByQuantities,
   getShipmentTotal,
+  getShipmentProductValue,
+  getShipmentVatAmount,
   extractVariables,
   generateAdvertText,
   getInitialVariableValue,
@@ -145,4 +147,38 @@ test('unfinished decimal entry converts safely without forcing display text', ()
   assert.equal(parseMoneyInput(','), '')
   assert.equal(parseMoneyInput('25.'), '25.00')
   assert.equal(parseMoneyInput('25,'), '25.00')
+})
+
+test('import VAT uses selected goods purchase price, excluding every delivery cost', () => {
+  const items = [
+    {
+      id: 'import',
+      quantity: 2,
+      base_purchase_price: 100,
+      seller_to_forwarder_cost: 30,
+      lot_shipping_cost: 10,
+      inbound_cost: 20,
+      purchase_price: 160,
+    },
+  ]
+  const productValue = getShipmentProductValue(items, { import: 1 })
+  assert.equal(productValue, 50)
+  const shipment = {
+    vat_mode: 'automatic',
+    vat_rate: 20,
+    vat_base: '',
+    store_to_forwarder: 100,
+    forwarder_to_home: 40,
+    monthly_subscription: 3,
+    extra_cost: 7,
+  }
+  assert.equal(getShipmentVatAmount(shipment, productValue), 10)
+  assert.equal(getShipmentVatAmount({ ...shipment, vat_base: 0 }, productValue), 0)
+  assert.equal(getShipmentVatAmount({ ...shipment, vat_base: 200 }, productValue), 40)
+  assert.equal(getShipmentVatAmount({ ...shipment, vat_mode: 'none' }, productValue), 0)
+  assert.equal(
+    getShipmentVatAmount({ ...shipment, vat_mode: 'manual', vat_amount: 12.34 }, productValue),
+    12.34,
+  )
+  assert.equal(getShipmentTotal({ ...shipment, vat_amount: 10 }), 160)
 })

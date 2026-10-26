@@ -67,6 +67,20 @@ Run these SQL files from the Supabase SQL Editor:
 
 Enable email/password authentication in **Authentication > Providers**. Email confirmation can remain disabled during early testing, then be enabled before a public launch.
 
+### Google sign-in
+
+The sign-in and sign-up screens include **Continue with Google**, using Supabase OAuth. Enable the provider before using the button:
+
+1. In Google Auth Platform, configure the consent screen and create an OAuth client of type **Web application**. Add the application origins (`https://adrafteo.com` and `http://localhost:5173` when testing locally).
+2. Copy the callback URL shown on the Google provider page in Supabase into Google's **Authorized redirect URIs**. It normally looks like `https://<project-ref>.supabase.co/auth/v1/callback`; this is the Supabase callback, not the Adrafteo home page.
+3. Enable **Google** under Supabase Authentication providers and enter the Google Client ID and Client Secret there. Never put the Client Secret in frontend code or `VITE_*` variables.
+4. In Supabase **Authentication > URL Configuration**, set the production Site URL and allow `https://adrafteo.com/` and `http://localhost:5173/` as redirect URLs. Add each preview URL you intend to test.
+5. While the Google app is in testing, add the intended testers in its Audience configuration; configure production access before opening sign-in to everyone.
+
+The app returns to the current application's root URL and restores the Supabase session through the existing authentication listener. A new Google account receives its own default template through the existing database trigger. Cancelled or failed OAuth callbacks return to the sign-in screen with a retry message.
+
+Setup reference: [Supabase Google sign-in documentation](https://supabase.com/docs/guides/auth/social-sign-in/auth-google).
+
 ## Features
 
 - Landing page and free account creation
@@ -112,7 +126,7 @@ Adrafteo is currently an early beta. Templates and feedback are persisted in Sup
 ## Finding your way around the code
 
 - `src/App.jsx`: connects the session, loaded data, navigation and save/delete actions.
-- `src/pages/`: full screens (public pages, Overview and Inventory).
+- `src/pages/`: full screens (public pages, Overview, Inventory and the dedicated Import shipment page). Import page styles are scoped in `ShipmentPage.css`.
 - `src/components/`: forms, cards and dialogs. For example, `ShipmentForm.jsx` handles the shipment form, and `InventoryForms.jsx` contains item creation, lot creation and lot editing.
 - `src/lib/workspace.js`: shared calculations, formatting, currency settings and template variable replacement.
 - `src/lib/supabase.js`: the Supabase client.
@@ -122,6 +136,12 @@ Adrafteo is currently an early beta. Templates and feedback are persisted in Sup
 A component is a JavaScript function returning JSX (HTML-like markup). `export` makes a component available to another file; `import` brings it into that file. `App.jsx` passes values and callbacks to components through props. To change a field, start in its form component; to change a calculation, start in `workspace.js`.
 
 Sale costs are monetary totals: marketplace commission plus shipping to the buyer paid by the seller. For a sale of 100 with a 13% commission and 5 shipping, enter 18. Acquisition shipping is included in purchase cost instead. A shipment must contain only additional acquisition costs that were not already entered on the item.
+
+### Import shipments
+
+Use **Inventory > Import shipment** to manage import delivery, VAT and forwarding costs. Select items or lots and their physical quantities, then enter delivery and any optional fees. Each row previews its current total cost, added fees and new final cost. If only some units travel, those new fees are added to the inventory row total; the preview also includes the other units on that row.
+
+Automatic VAT uses `sum(base_purchase_price / quantity * selected_quantity) × VAT rate`. Individual seller-to-forwarder delivery, allocated lot shipping and all shipment costs are excluded from this default base. The page displays the base and formula. A custom taxable base or an invoice VAT amount can be entered explicitly instead. Included VAT and additional delivery/forwarding fees are then shared proportionally to goods value, equally per physical unit, or manually according to the selected allocation method. Existing acquisition delivery is never prefilled as a new shipment charge.
 
 ## Validation
 
@@ -134,6 +154,19 @@ npm install --prefix "$env:TEMP/adrafteo-sql-validation" --no-save --package-loc
 $env:ADRAFTEO_PGLITE_MODULE = "$env:TEMP/adrafteo-sql-validation/node_modules/@electric-sql/pglite/dist/index.js"
 node tests/inventory-sql.mjs
 ```
+
+The import-page browser regression runner uses local Chrome and temporary Playwright tooling. It runs against fictitious inventory and never connects to Supabase:
+
+```powershell
+npm.cmd install --prefix "$env:TEMP/adrafteo-browser-validation" --no-save --package-lock=false --ignore-scripts playwright
+$env:ADRAFTEO_PLAYWRIGHT_MODULE = "$env:TEMP/adrafteo-browser-validation/node_modules/playwright/index.mjs"
+node tests/import-shipment-browser.mjs
+node tests/auth-browser.mjs
+```
+
+Desktop and mobile screenshots are written to the temporary `adrafteo-browser-validation` folder. Set `ADRAFTEO_BROWSER_EXECUTABLE` to use another installed Chromium browser.
+
+The authentication browser runner uses a simulated Supabase client to check Google OAuth requests, errors, cancellation callbacks and email registration. A live Google sign-in still needs verification after provider configuration.
 
 Before deploying the updated frontend, run `supabase/inventory.sql` in the Supabase SQL Editor to install the shipment RPCs and lot-shipping allocation triggers. This adds an allocated lot shipping share to each item and recalculates existing lot totals. Re-running the script recomputes shares rather than adding them again. Shipping is shared per physical unit: a line of quantity 2 receives twice the share of a line of quantity 1. Item final prices include their base purchase price, individual acquisition shipping, allocated lot shipping and shipment costs. The lot total is the sum of its item final prices.
 

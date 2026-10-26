@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AuthPanel } from '../components/Account'
 import { FeedbackPanel } from '../components/FeedbackPanel'
+import { getOAuthReturnError } from '../lib/auth'
 
 export function Footer({ onOpenLegalPage, onHome, onOpenPricing }) {
   return (
@@ -291,7 +292,9 @@ export function PricingPage({ onBack, onOpenLegalPage, onOpenPricing }) {
 }
 
 export function LandingPage({ onOpenLegalPage, onOpenFaq, onOpenPricing, onBackWorkspace }) {
-  const [showAuth, setShowAuth] = useState(false)
+  const [showAuth, setShowAuth] = useState(() =>
+    Boolean(getOAuthReturnError(typeof window === 'undefined' ? null : window.location)),
+  )
   const [showFeedback, setShowFeedback] = useState(false)
 
   if (showAuth) {

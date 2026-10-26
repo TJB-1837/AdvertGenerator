@@ -108,6 +108,21 @@ create trigger test_reject_lot_update before update on public.inventory_lots for
   await remove(snapshot.shipments[0].id)
   snapshot = await save({
     ...draft,
+    store_to_forwarder: 99,
+    forwarder_to_home: 200,
+    monthly_subscription: 5,
+    extra_cost: 7,
+    vat_mode: 'automatic',
+    allocations: [{ ...draft.allocations[0], quantity: 1, allocated_cost: 321 }],
+  })
+  assert.equal(Number(snapshot.shipments[0].vat_amount), 10)
+  assert.equal(Number(snapshot.items[0].base_purchase_price), 100)
+  await remove(snapshot.shipments[0].id)
+  console.log(
+    'PASS: partial-quantity import VAT excludes seller shipping, lot shipping and shipment delivery',
+  )
+  snapshot = await save({
+    ...draft,
     vat_mode: 'automatic',
     vat_base: '0',
     allocations: [{ ...draft.allocations[0], allocated_cost: 20 }],
@@ -202,7 +217,11 @@ create trigger test_reject_lot_update before update on public.inventory_lots for
   console.log('PASS: migration repairs legacy lot allocations')
   await db.exec(sql)
   assert.deepEqual(
-    (await lotItems()).map((item) => [item.base_purchase_price, item.lot_shipping_cost, item.final_price]),
+    (await lotItems()).map((item) => [
+      item.base_purchase_price,
+      item.lot_shipping_cost,
+      item.final_price,
+    ]),
     beforeRerun.map((item) => [item.base_purchase_price, item.lot_shipping_cost, item.final_price]),
   )
   console.log('PASS: rerunning migration with existing data does not accumulate costs')
