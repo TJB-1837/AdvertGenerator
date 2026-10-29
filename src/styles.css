@@ -1672,7 +1672,7 @@ textarea {
 
 .status-chart__row {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) 24px;
+  grid-template-columns: 96px minmax(0, 1fr) 24px;
   align-items: center;
   gap: 12px;
 }
@@ -3983,7 +3983,7 @@ select {
 
 .app-shell .status-chart__row {
   display: grid !important;
-  grid-template-columns: 72px minmax(0, 1fr) 24px !important;
+  grid-template-columns: 96px minmax(0, 1fr) 24px !important;
   align-items: center;
   gap: 12px;
 }
@@ -4103,6 +4103,10 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.app-shell .status-chart__row > span {
+  white-space: nowrap;
 }
 
 .app-shell .comparison-chart__legend-swatch,
@@ -5148,4 +5152,27 @@ select {
   .landing-workflow__steps {
     grid-template-columns: 1fr;
   }
+}
+/* Public product pages and guides. */
+.public-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  margin-bottom: 32px;
+}
+
+.public-brand { font-size: 1.3rem; font-weight: 700; margin-right: auto; }
+.public-nav a, .related-pages a, .site-footer__nav a { color: inherit; text-underline-offset: 4px; }
+.site-footer__nav a { padding: 6px 0; }
+.content-page h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.12; overflow-wrap: anywhere; }
+.content-page .legal-page { max-width: 900px; margin-inline: auto; }
+.content-page .legal-page__section p { line-height: 1.8; }
+.related-pages { margin-top: 40px; }
+.related-pages li { margin-block: 12px; }
+.article-byline { font-size: .9rem; }
+.landing-nav__actions a.button, .legal-header a.button { text-decoration: none; }
+.public-nav a:focus-visible, .site-footer a:focus-visible, .related-pages a:focus-visible {
+  outline: 3px solid #b0413e;
+  outline-offset: 4px;
 }

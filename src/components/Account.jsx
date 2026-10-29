@@ -60,7 +60,8 @@ export function AuthPanel({ onAuthenticated, onBack }) {
     }
 
     if (mode === 'sign-up') {
-      setMessage('Account created. Check your email if confirmation is enabled.')
+      if (result.data.session) onAuthenticated(result.data.session)
+      else setMessage('Account created. Check your email if confirmation is enabled.')
     } else {
       onAuthenticated(result.data.session)
     }

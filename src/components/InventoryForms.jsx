@@ -309,7 +309,7 @@ function createBlankLotItem() {
   }
 }
 
-export function LotFormV2({ templates, onSave, onCancel }) {
+export function LotFormV2({ templates, onSave, onCancel, dirtyRef }) {
   const [name, setName] = useState('')
   const [notes, setNotes] = useState('')
   const [commonFields, setCommonFields] = useState({
@@ -333,6 +333,23 @@ export function LotFormV2({ templates, onSave, onCancel }) {
     template_id: '',
   })
   const [items, setItems] = useState([createBlankLotItem()])
+  const draft = JSON.stringify({ name, notes, commonFields, lotFields, items })
+  const initialDraft = useRef(draft)
+  const isDirty = draft !== initialDraft.current
+
+  useEffect(() => {
+    if (dirtyRef) dirtyRef.current = isDirty
+    const warnBeforeLeaving = (event) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    if (isDirty) window.addEventListener('beforeunload', warnBeforeLeaving)
+    return () => {
+      if (dirtyRef) dirtyRef.current = false
+      window.removeEventListener('beforeunload', warnBeforeLeaving)
+    }
+  }, [isDirty, dirtyRef])
+
   const previousAllocation = useRef({ purchase: [], target: [] })
   const shippingAllocation = allocateAmountByQuantities(
     lotFields.seller_to_forwarder_cost || 0,

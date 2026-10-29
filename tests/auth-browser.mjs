@@ -9,8 +9,8 @@ const { chromium } = await import(
 const root = fileURLToPath(new URL('../', import.meta.url))
 const fixtureId = '\0virtual:auth-preview.jsx'
 const mockId = '\0virtual:auth-supabase'
-const mock = `export const supabase={auth:{async signInWithOAuth(options){window.__oauthOptions=options;if(window.__oauthMode==='throw')throw new Error('Network unavailable');return window.__oauthMode==='error'?{error:{message:'Google provider is not enabled'}}:{data:{url:'https://accounts.google.com/example'},error:null}},async signUp(options){window.__signup=options;return {data:{session:null},error:null}},async signInWithPassword(options){window.__signin=options;return {data:{session:{user:{id:'test'}}},error:null}}}}`
-const fixture = `import React from 'react';import {createRoot} from 'react-dom/client';import {LandingPage} from '/src/pages/PublicPages.jsx';import '/src/styles.css';createRoot(document.getElementById('root')).render(React.createElement(LandingPage,{onOpenLegalPage:()=>{},onOpenFaq:()=>{},onOpenPricing:()=>{}}));`
+const mock = `export const supabase={auth:{async signInWithOAuth(options){window.__oauthOptions=options;if(window.__oauthMode==='throw')throw new Error('Network unavailable');return window.__oauthMode==='error'?{error:{message:'Google provider is not enabled'}}:{data:{url:'https://accounts.google.com/example'},error:null}},async signUp(options){window.__signup=options;return {data:{session:window.__signupSession?{user:{id:'test'}}:null},error:null}},async signInWithPassword(options){window.__signin=options;return {data:{session:{user:{id:'test'}}},error:null}}}}`
+const fixture = `import React from 'react';import {createRoot} from 'react-dom/client';import {LandingPage} from '/src/pages/PublicPages.jsx';import '/src/styles.css';createRoot(document.getElementById('root')).render(React.createElement(LandingPage,{onOpenLegalPage:()=>{},onOpenFaq:()=>{},onOpenPricing:()=>{},onAuthenticated:session=>{window.__authenticated=session}}));`
 const server = await createServer({
   root,
   appType: 'custom',
@@ -106,6 +106,21 @@ try {
   console.log(
     'PASS: cancelled callbacks reopen sign-in, clear error parameters, and remain usable on mobile',
   )
+  await page.goto(origin + '/__auth-preview')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await page.getByLabel('Email', { exact: true }).fill('test@example.com')
+  await page.getByLabel('Password', { exact: true }).fill('test-only-password')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await page.waitForFunction(() => window.__authenticated?.user?.id === 'test')
+  await page.goto(origin + '/__auth-preview')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await page.getByRole('button', { name: 'Create an account', exact: true }).click()
+  await page.getByLabel('Email', { exact: true }).fill('test@example.com')
+  await page.getByLabel('Password', { exact: true }).fill('test-only-password')
+  await page.evaluate(() => { window.__signupSession = true })
+  await page.getByRole('button', { name: 'Create account', exact: true }).click()
+  await page.waitForFunction(() => window.__authenticated?.user?.id === 'test')
+  console.log('PASS: successful email sign-in and immediate-session registration open the workspace')
 } catch (error) {
   console.error(error)
   process.exitCode = 1

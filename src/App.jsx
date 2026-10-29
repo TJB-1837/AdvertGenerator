@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from './lib/supabase'
 import {
   normalizeTemplate,
@@ -10,9 +10,9 @@ import {
   getGeneratorValues,
   getLotGeneratorValues,
 } from './lib/workspace'
-import { AccountPanel } from './components/Account'
+import { AccountPanel, AuthPanel } from './components/Account'
 import { FeedbackPanel } from './components/FeedbackPanel'
-import { Footer, LegalPage, FaqPage, PricingPage, LandingPage } from './pages/PublicPages'
+import { Footer } from './pages/PublicPages'
 import { TemplateCard } from './components/Templates'
 import { Modal } from './components/Modal'
 import { TemplateForm, CrossVariablesPanel, GeneratorPanel } from './components/TemplateForms'
@@ -30,17 +30,20 @@ function App() {
   const [inventoryShipments, setInventoryShipments] = useState([])
   const [shipmentAllocations, setShipmentAllocations] = useState([])
   const [activeView, setActiveView] = useState('overview')
-  const [showLanding, setShowLanding] = useState(false)
   const [templateQuery, setTemplateQuery] = useState('')
   const [editorTemplate, setEditorTemplate] = useState(null)
   const [generatorTemplate, setGeneratorTemplate] = useState(null)
   const [inventoryEditor, setInventoryEditor] = useState(null)
   const [lotEditor, setLotEditor] = useState(null)
+  const lotCreationDirty = useRef(false)
+  const closeLotEditor = () => {
+    if (!lotEditor?.id && lotCreationDirty.current && !window.confirm(
+      'Leave lot creation? Your unsaved changes will be lost.',
+    )) return
+    setLotEditor(null)
+  }
   const [shipmentEditor, setShipmentEditor] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
-  const [activeLegalPage, setActiveLegalPage] = useState(null)
-  const [showFaqPage, setShowFaqPage] = useState(false)
-  const [showPricingPage, setShowPricingPage] = useState(false)
   const [showAccountPage, setShowAccountPage] = useState(false)
   const [showCrossVariables, setShowCrossVariables] = useState(false)
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY')
@@ -589,50 +592,6 @@ function App() {
     )
   }
 
-  if (activeLegalPage) {
-    return (
-      <LegalPage
-        page={activeLegalPage}
-        onBack={() => setActiveLegalPage(null)}
-        onHome={() => setActiveLegalPage(null)}
-        onOpenLegalPage={setActiveLegalPage}
-        onOpenPricing={() => {
-          setActiveLegalPage(null)
-          setShowFaqPage(false)
-          setShowPricingPage(true)
-        }}
-      />
-    )
-  }
-
-  if (showFaqPage) {
-    return (
-      <FaqPage
-        onBack={() => setShowFaqPage(false)}
-        onOpenLegalPage={setActiveLegalPage}
-        onOpenPricing={() => {
-          setActiveLegalPage(null)
-          setShowFaqPage(false)
-          setShowPricingPage(true)
-        }}
-      />
-    )
-  }
-
-  if (showPricingPage) {
-    return (
-      <PricingPage
-        onBack={() => setShowPricingPage(false)}
-        onOpenLegalPage={setActiveLegalPage}
-        onOpenPricing={() => {
-          setActiveLegalPage(null)
-          setShowFaqPage(false)
-          setShowPricingPage(true)
-        }}
-      />
-    )
-  }
-
   if (showAccountPage && session) {
     return (
       <AccountPanel
@@ -650,23 +609,13 @@ function App() {
         }}
         onClose={() => setShowAccountPage(false)}
         onDeleted={() => setShowAccountPage(false)}
-        onOpenFaq={() => setShowFaqPage(true)}
+        onOpenFaq={() => window.location.assign('/faq')}
       />
     )
   }
 
   if (!session) {
-    return (
-      <LandingPage
-        onOpenLegalPage={setActiveLegalPage}
-        onOpenFaq={() => setShowFaqPage(true)}
-        onOpenPricing={() => {
-          setActiveLegalPage(null)
-          setShowFaqPage(false)
-          setShowPricingPage(true)
-        }}
-      />
-    )
+    return <AuthPanel onAuthenticated={setSession} onBack={() => window.location.assign('/')} />
   }
 
   if (shipmentEditor) {
@@ -681,21 +630,6 @@ function App() {
           setShipmentEditor(false)
           setError('')
         }}
-      />
-    )
-  }
-
-  if (showLanding) {
-    return (
-      <LandingPage
-        onOpenLegalPage={setActiveLegalPage}
-        onOpenFaq={() => setShowFaqPage(true)}
-        onOpenPricing={() => {
-          setActiveLegalPage(null)
-          setShowFaqPage(false)
-          setShowPricingPage(true)
-        }}
-        onBackWorkspace={() => setShowLanding(false)}
       />
     )
   }
@@ -754,13 +688,7 @@ function App() {
           >
             Cross variables
           </button>
-          <button
-            type="button"
-            className="button button--ghost"
-            onClick={() => setShowFaqPage(true)}
-          >
-            FAQ
-          </button>
+          <a className="button button--ghost" href="/faq">FAQ</a>
           <button
             type="button"
             className="button button--ghost"
@@ -788,13 +716,7 @@ function App() {
       <main className="content">
         {error ? <p className="error-message">{error}</p> : null}
         <nav className="workspace-nav" aria-label="Workspace sections">
-          <button
-            type="button"
-            className="workspace-nav__link"
-            onClick={() => setShowLanding(true)}
-          >
-            Landing
-          </button>
+          <a className="workspace-nav__link" href="/">Home</a>
           <button
             type="button"
             className={
@@ -1022,7 +944,7 @@ function App() {
         <Modal
           title={lotEditor.id ? 'Edit inventory lot' : 'Create inventory lot'}
           subtitle="Group several items while keeping their individual financial details."
-          onClose={() => setLotEditor(null)}
+          onClose={closeLotEditor}
           wide
         >
           {lotEditor.id ? (
@@ -1036,21 +958,15 @@ function App() {
             <LotFormV2
               templates={templates}
               onSave={handleSaveInventoryLot}
-              onCancel={() => setLotEditor(null)}
+              onCancel={closeLotEditor}
+              dirtyRef={lotCreationDirty}
             />
           )}
         </Modal>
       ) : null}
 
       {showFeedback ? <FeedbackPanel onClose={() => setShowFeedback(false)} /> : null}
-      <Footer
-        onOpenLegalPage={setActiveLegalPage}
-        onOpenPricing={() => {
-          setActiveLegalPage(null)
-          setShowFaqPage(false)
-          setShowPricingPage(true)
-        }}
-      />
+      <Footer />
     </div>
   )
 }

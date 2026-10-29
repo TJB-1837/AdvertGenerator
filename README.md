@@ -94,6 +94,10 @@ Setup reference: [Supabase Google sign-in documentation](https://supabase.com/do
 
 ## Deploy to Vercel
 
+The repository includes `vercel.json` with an explicit static build configuration. Use the full `npm run build` command; running `vite build` alone does not generate the public pages or sitemap. The build output is `dist`, with no runtime rendering server. Vercel serves the generated pages and `404.html`; do not add a catch-all rewrite to `/index.html`, which would turn missing URLs into successful landing-page responses.
+
+For everyday development, use `npm run dev`. If using `vercel dev`, the explicit `devCommand` runs npm and Vite binds to the `PORT` supplied by Vercel; Yarn is not required. Restart `vercel dev` after changing this configuration.
+
 Import the GitHub repository into Vercel. Vercel detects Vite automatically.
 
 Set these environment variables for Production, Preview, and Development:
@@ -144,6 +148,18 @@ Use **Inventory > Import shipment** to manage import delivery, VAT and forwardin
 Automatic VAT uses `sum(base_purchase_price / quantity * selected_quantity) × VAT rate`. Individual seller-to-forwarder delivery, allocated lot shipping and all shipment costs are excluded from this default base. The page displays the base and formula. A custom taxable base or an invoice VAT amount can be entered explicitly instead. Included VAT and additional delivery/forwarding fees are then shared proportionally to goods value, equally per physical unit, or manually according to the selected allocation method. Existing acquisition delivery is never prefilled as a new shipment charge.
 
 ## Validation
+
+### Public website and SEO
+
+The public website stays in English for V1. Its React pages are rendered to static HTML during the build and hydrated in the browser. Marketing pages do not load the Supabase client or wait for authentication. The workspace is available at `/app` and is marked `noindex`; the public root remains the marketing home even for returning users. Existing Supabase OAuth and confirmation callbacks to the root are preserved and handled by the workspace, so the current root redirect allowlist remains valid.
+
+Public routes include `/pricing`, `/faq`, `/listing-templates`, `/reseller-inventory`, `/reseller-profit-tracking`, two `/guides/` articles, and `/legal`, `/privacy`, `/terms`. Legal pages are accessible but marked `noindex`. Public content and FAQ answers are defined in `src/lib/public-content.js`; the same FAQ data generates the visible answers and JSON-LD. `scripts/build.mjs` generates per-page metadata, canonical URLs, social cards and the sitemap. Optional `public/llms.txt` summarises the published content; it does not guarantee discovery by AI search engines.
+
+The canonical origin is currently `https://adrafteo.com`. Confirm this domain in Vercel and configure redirects for domain aliases there. When adding or changing public pages, update the route definitions and rebuild. Keep robots.txt permissive for indexable content; never use it as an access-control mechanism for private data.
+
+After building, run `node tests/seo-built.mjs` to validate rendered content, metadata, sitemap membership, FAQ schemas, internal links, social-image dimensions and the published profit example. `node tests/seo-browser.mjs` uses the temporary Playwright module described below to inspect the built pages without JavaScript, mobile overflow, hydration, normal navigation, sign-in screens, root OAuth cancellation and a static 404 response. This runner uses the real Vite production-preview server; production Vercel routing still needs a post-deployment check.
+
+Before launch, verify page status codes, HTML and canonical URLs on the deployed domain, test real OAuth with the configured Google provider, inspect pages in Search Console and submit `/sitemap.xml`. Check social previews on the target platforms and measure mobile Core Web Vitals using production traffic; local browser checks do not establish field performance or indexing. Search Console/Bing access and acquisition analytics are not configured by this change.
 
 Run `npm test` for the business regression suite and `npm run build` for a production compilation.
 

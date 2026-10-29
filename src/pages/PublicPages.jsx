@@ -1,47 +1,21 @@
-import { useState } from 'react'
-import { AuthPanel } from '../components/Account'
-import { FeedbackPanel } from '../components/FeedbackPanel'
+import { lazy, Suspense, useState } from 'react'
+import { faqItems } from '../lib/public-content'
 import { getOAuthReturnError } from '../lib/auth'
 
-export function Footer({ onOpenLegalPage, onHome, onOpenPricing }) {
-  return (
-    <footer className="site-footer">
-      <div className="site-footer__nav">
-        {onHome ? (
-          <button type="button" className="button button--text" onClick={onHome}>
-            Home
-          </button>
-        ) : null}
-        {onOpenPricing ? (
-          <button type="button" className="button button--text" onClick={onOpenPricing}>
-            Pricing
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="button button--text"
-          onClick={() => onOpenLegalPage('mentions')}
-        >
-          Legal notice
-        </button>
-        <button
-          type="button"
-          className="button button--text"
-          onClick={() => onOpenLegalPage('confidentialite')}
-        >
-          Privacy policy
-        </button>
-        <button
-          type="button"
-          className="button button--text"
-          onClick={() => onOpenLegalPage('cgu')}
-        >
-          Terms
-        </button>
-      </div>
-      <p className="site-footer__meta">Adrafteo — reusable marketplace listing template tool</p>
-    </footer>
-  )
+const AuthPanel = lazy(() => import('../components/Account').then(m => ({ default: m.AuthPanel })))
+const FeedbackPanel = lazy(() => import('../components/FeedbackPanel').then(m => ({ default: m.FeedbackPanel })))
+
+export function Footer() {
+  return <footer className="site-footer">
+    <nav className="site-footer__nav" aria-label="Footer navigation">
+      <a href="/">Home</a><a href="/listing-templates">Listing templates</a>
+      <a href="/reseller-inventory">Inventory</a><a href="/reseller-profit-tracking">Profit tracking</a>
+      <a href="/guides/reusable-listing-template">Template guide</a><a href="/guides/resale-cost-and-profit">Profit guide</a>
+      <a href="/pricing">Pricing</a><a href="/faq">FAQ</a>
+      <a href="/legal">Legal notice</a><a href="/privacy">Privacy policy</a><a href="/terms">Terms</a>
+    </nav>
+    <p className="site-footer__meta">Adrafteo — listing templates, inventory and profit tracking for independent resellers.</p>
+  </footer>
 }
 
 const legalContent = {
@@ -124,7 +98,7 @@ const legalContent = {
   },
 }
 
-export function LegalPage({ page, onBack, onHome, onOpenLegalPage, onOpenPricing }) {
+export function LegalPage({ page }) {
   const content = legalContent[page] ?? legalContent.mentions
 
   return (
@@ -134,9 +108,7 @@ export function LegalPage({ page, onBack, onHome, onOpenLegalPage, onOpenPricing
           <p className="eyebrow">Adrafteo</p>
           <h1>{content.title}</h1>
         </div>
-        <button type="button" className="button button--ghost" onClick={onBack}>
-          Back
-        </button>
+        <a className="button button--ghost" href="/">Home</a>
       </header>
 
       <article className="legal-page">
@@ -149,57 +121,21 @@ export function LegalPage({ page, onBack, onHome, onOpenLegalPage, onOpenPricing
         ))}
       </article>
 
-      <Footer onOpenLegalPage={onOpenLegalPage} onHome={onHome} onOpenPricing={onOpenPricing} />
+      <Footer />
     </main>
   )
 }
 
-const faqItems = [
-  {
-    question: 'What is a reusable marketplace listing template?',
-    answer:
-      'It is a listing structure you can save once and reuse for multiple products. Add placeholders such as [Brand], [Size], or [Condition], then fill them in for each advert.',
-  },
-  {
-    question: 'Can I use one template on different marketplaces?',
-    answer:
-      'Yes. Adrafteo is designed for multi-platform selling, including Vinted, eBay, Depop, Facebook Marketplace, and other marketplaces.',
-  },
-  {
-    question: 'How do variables work?',
-    answer:
-      'Write variable names between square brackets in your title or description. When you generate an advert, Adrafteo asks for the values and replaces the placeholders in your copy.',
-  },
-  {
-    question: 'Are my templates private?',
-    answer:
-      'Yes. Templates, inventory, and reusable variables are linked to your account and protected by Supabase access policies.',
-  },
-  {
-    question: 'Does Adrafteo use AI to generate adverts?',
-    answer:
-      'No. Standard advert generation happens in your browser by replacing the variables in your saved template. Your original template stays under your control.',
-  },
-]
-
-export function FaqPage({ onBack, onOpenLegalPage, onOpenPricing }) {
+export function FaqPage() {
   return (
     <main className="legal-shell">
       <header className="legal-header">
         <div>
-          <button
-            type="button"
-            className="button button--ghost faq-pricing-button"
-            onClick={onOpenPricing}
-          >
-            Pricing
-          </button>
+          <a className="button button--ghost faq-pricing-button" href="/pricing">Pricing</a>
           <p className="eyebrow">Adrafteo</p>
           <h1>Frequently asked questions</h1>
         </div>
-        <button type="button" className="button button--ghost" onClick={onBack}>
-          Back
-        </button>
+        <a className="button button--ghost" href="/">Home</a>
       </header>
 
       <article className="legal-page faq-page">
@@ -216,7 +152,7 @@ export function FaqPage({ onBack, onOpenLegalPage, onOpenPricing }) {
         </div>
       </article>
 
-      <Footer onOpenLegalPage={onOpenLegalPage} />
+      <Footer />
     </main>
   )
 }
@@ -238,7 +174,7 @@ const pricingFeatures = [
   'Feedback and account management',
 ]
 
-export function PricingPage({ onBack, onOpenLegalPage, onOpenPricing }) {
+export function PricingPage() {
   return (
     <main className="legal-shell">
       <header className="legal-header">
@@ -246,9 +182,7 @@ export function PricingPage({ onBack, onOpenLegalPage, onOpenPricing }) {
           <p className="eyebrow">Adrafteo</p>
           <h1>Simple pricing.</h1>
         </div>
-        <button type="button" className="button button--ghost" onClick={onBack}>
-          Back
-        </button>
+        <a className="button button--ghost" href="/">Home</a>
       </header>
 
       <article className="legal-page pricing-page">
@@ -284,21 +218,22 @@ export function PricingPage({ onBack, onOpenLegalPage, onOpenPricing }) {
           No payment is required while Adrafteo is in beta. Future plans will be communicated before
           any change to access or pricing.
         </p>
+        <a className="button button--primary" href="/app">Open your free workspace</a>
       </article>
 
-      <Footer onOpenLegalPage={onOpenLegalPage} onOpenPricing={onOpenPricing} />
+      <Footer />
     </main>
   )
 }
 
-export function LandingPage({ onOpenLegalPage, onOpenFaq, onOpenPricing, onBackWorkspace }) {
+export function LandingPage({ onAuthenticated = () => window.location.assign('/app') }) {
   const [showAuth, setShowAuth] = useState(() =>
     Boolean(getOAuthReturnError(typeof window === 'undefined' ? null : window.location)),
   )
   const [showFeedback, setShowFeedback] = useState(false)
 
   if (showAuth) {
-    return <AuthPanel onAuthenticated={() => {}} onBack={() => setShowAuth(false)} />
+    return <Suspense fallback={<main className="auth-shell"><p>Loading sign in...</p></main>}><AuthPanel onAuthenticated={onAuthenticated} onBack={() => setShowAuth(false)} /></Suspense>
   }
 
   return (
@@ -318,17 +253,9 @@ export function LandingPage({ onOpenLegalPage, onOpenFaq, onOpenPricing, onBackW
             <span>Adrafteo</span>
           </a>
           <div className="landing-nav__actions">
-            {onBackWorkspace ? (
-              <button type="button" className="button button--ghost" onClick={onBackWorkspace}>
-                Workspace
-              </button>
-            ) : null}
-            <button type="button" className="button button--ghost" onClick={onOpenPricing}>
-              Pricing
-            </button>
-            <button type="button" className="button button--ghost" onClick={onOpenFaq}>
-              FAQ
-            </button>
+            <a className="button button--ghost" href="/app">Workspace</a>
+            <a className="button button--ghost" href="/pricing">Pricing</a>
+            <a className="button button--ghost" href="/faq">FAQ</a>
             <button
               type="button"
               className="button button--ghost"
@@ -350,13 +277,12 @@ export function LandingPage({ onOpenLegalPage, onOpenFaq, onOpenPricing, onBackW
           <div className="landing-hero__copy landing-hero__copy--centered">
             <p className="eyebrow">Optimized for resellers on multiple marketplaces</p>
             <h1>
-              Stop re-typing listings.
+              Reusable listings. Organised inventory.
               <br />
-              Create consistent marketplace adverts with <em>[bracket variables]</em>.
+              Keep your resale workflow in <em>one workspace</em>.
             </h1>
             <p className="landing-hero__lede">
-              Save your listing formats, fill in the product details that change, and copy the
-              finished advert in less time.
+              Create reusable marketplace listing templates, fill in the details that change, and track your inventory, acquisition costs, sales and profit.
             </p>
             <div className="landing-hero__actions">
               <button
@@ -366,13 +292,7 @@ export function LandingPage({ onOpenLegalPage, onOpenFaq, onOpenPricing, onBackW
               >
                 Create a free workspace <span aria-hidden="true">→</span>
               </button>
-              <button
-                type="button"
-                className="button button--ghost button--large"
-                onClick={onOpenFaq}
-              >
-                See how it works
-              </button>
+              <a className="button button--ghost button--large" href="/faq">See how it works</a>
             </div>
             <span className="landing-note">Free during beta · No payment required</span>
           </div>
@@ -417,24 +337,23 @@ export function LandingPage({ onOpenLegalPage, onOpenFaq, onOpenPricing, onBackW
                     Brand <b>Nike</b>
                   </div>
                   <div className="preview-form-line">
-                    Item <b>Vintage fleece</b>
+                    Item <b>fleece</b>
                   </div>
                   <div className="preview-form-line">
                     Size <b>M</b>
                   </div>
                   <div className="preview-form-line">
-                    Condition <b>Very good</b>
+                    Condition <b>good</b>
                   </div>
                 </div>
                 <div className="product-preview__result">
                   <span className="preview-label">03 · READY TO COPY</span>
                   <strong>
-                    Vintage denim jacket
+                    Nike fleece
                     <br />· size M
                   </strong>
                   <p>
-                    Classic vintage fleece in very good condition. Details filled from your reusable
-                    template.
+                    A good fleece ready for its next owner.
                   </p>
                   <span className="preview-copy">
                     Copy listing <b>↗</b>
@@ -598,50 +517,27 @@ export function LandingPage({ onOpenLegalPage, onOpenFaq, onOpenPricing, onBackW
           </div>
         </section>
 
+        <section className="landing-workflow" aria-labelledby="explore-heading">
+          <div className="landing-section-heading">
+            <p className="eyebrow">Explore the workflow</p>
+            <h2 id="explore-heading">From the first draft to the final sale.</h2>
+          </div>
+          <div className="landing-workflow__steps">
+            <article><h3>Reusable listing templates</h3><p>See a complete bracket-variable example and how to review your finished copy.</p><a href="/listing-templates">Explore listing templates</a></article>
+            <article><h3>Reseller inventory</h3><p>Organise items and lots with their purchase, delivery and shipment costs.</p><a href="/reseller-inventory">Explore inventory tracking</a></article>
+            <article><h3>Profit and ROI</h3><p>Understand what a sale earned using acquisition costs and selling fees.</p><a href="/reseller-profit-tracking">Explore profit tracking</a></article>
+          </div>
+        </section>
+
         <section className="landing-faq" aria-labelledby="faq-heading">
           <div className="landing-section-heading">
             <p className="eyebrow">Clear and practical</p>
             <h2 id="faq-heading">Questions before you start?</h2>
           </div>
           <div className="faq-list">
-            <details>
-              <summary>What is Adrafteo?</summary>
-              <p>
-                Adrafteo is a web app for resellers who want to save reusable marketplace listing
-                templates, fill in changing product details, and copy ready-to-post adverts.
-              </p>
-            </details>
-            <details>
-              <summary>How do reusable listing templates work?</summary>
-              <p>
-                Write a title and description once, then add variables such as [Brand], [Size], or
-                [Condition]. When you generate an advert, Adrafteo replaces those variables with the
-                details of the item you are listing.
-              </p>
-            </details>
-            <details>
-              <summary>Can I use one template across different marketplaces?</summary>
-              <p>
-                Yes. Adrafteo keeps your templates reusable so you can adapt the same listing
-                workflow for Vinted, eBay, Depop, and other marketplaces. You can adjust the wording
-                whenever a platform needs a different format.
-              </p>
-            </details>
-            <details>
-              <summary>Are my templates private?</summary>
-              <p>
-                Your saved templates belong to your authenticated Adrafteo account. They are stored
-                per user in Supabase and are not intended to be shared publicly.
-              </p>
-            </details>
-            <details>
-              <summary>Does Adrafteo use AI to generate adverts?</summary>
-              <p>
-                No. Adrafteo currently generates adverts in your browser by replacing the variables
-                in your own templates. Your copy stays under your control and no AI service is
-                required for ordinary generation.
-              </p>
-            </details>
+            {faqItems.map(({ question, answer }) => (
+              <details key={question}><summary>{question}</summary><p>{answer}</p></details>
+            ))}
           </div>
         </section>
 
@@ -665,8 +561,8 @@ export function LandingPage({ onOpenLegalPage, onOpenFaq, onOpenPricing, onBackW
             Create a free workspace <span aria-hidden="true">→</span>
           </button>
         </section>
-        {showFeedback ? <FeedbackPanel onClose={() => setShowFeedback(false)} /> : null}
-        <Footer onOpenLegalPage={onOpenLegalPage} />
+        {showFeedback ? <Suspense fallback={<p role="status">Loading feedback...</p>}><FeedbackPanel onClose={() => setShowFeedback(false)} /></Suspense> : null}
+        <Footer />
       </main>
     </>
   )

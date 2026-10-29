@@ -1,0 +1,18 @@
+# Adrafteo
+
+> Adrafteo is an English-language workspace for independent resellers, combining reusable marketplace listing templates with inventory, acquisition cost, sale and profit tracking. All current features are free during the beta.
+
+## Product
+- [Overview](https://adrafteo.com/): Product workflow and frequently asked questions.
+- [Listing templates](https://adrafteo.com/listing-templates): Bracket variables, review and manual copying to marketplaces.
+- [Inventory](https://adrafteo.com/reseller-inventory): Individual items, lots and acquisition costs.
+- [Profit tracking](https://adrafteo.com/reseller-profit-tracking): Sale costs, profit and ROI.
+- [Pricing](https://adrafteo.com/pricing): Free access during beta.
+- [FAQ](https://adrafteo.com/faq): Product capabilities and limits.
+
+## Practical guides
+- [Reusable listing templates](https://adrafteo.com/guides/reusable-listing-template): A worked template and review checklist.
+- [Resale cost and profit](https://adrafteo.com/guides/resale-cost-and-profit): A fictitious numerical example distinguishing acquisition costs, sale costs, profit and ROI.
+
+## Limits
+Advert generation replaces variables locally in the browser; it does not use AI. Users review and paste the text themselves. Adrafteo does not automatically publish or synchronise marketplace listings and is not affiliated with Vinted, eBay or Depop. Saved account data is private and is not a public content source. This file is an optional content summary, not an indexing requirement.
